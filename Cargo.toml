@@ -1,0 +1,40 @@
+[package]
+name = "rust_accounts"
+version = "0.0.1"
+edition = "2021"
+readme = "README.md"
+authors = ["Gavin J Stark"]
+description = "Simple accounts"
+homepage = "https://github.com/atthecodeface/rust_accounts"
+documentation = "https://docs.rs/cpu_timer"
+keywords = ["timer", "precise", "cpu"]
+categories = ["date-and-time"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/atthecodeface/rust_accounts"
+
+[dependencies]
+num-traits = "0.2.19"
+regex = "1.11.1"
+
+[dependencies.csv]
+version = "1.3"
+
+[dependencies.chrono]
+version = "0.4.39"
+features = ["alloc", "clock", "iana-time-zone", "js-sys", "now", "std", "wasm-bindgen", "wasmbind"]
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive", "rc"]
+
+[dependencies.thiserror]
+version = ">=1.0.61"
+
+[dependencies.serde_json]
+version = "1.0.91"
+
+[dependencies.clap]
+version = "4.5.2"
+features = ["string"]
+
+
