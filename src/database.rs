@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::{Account, DbAccount, DbAccounts, DbTransaction};
@@ -15,7 +15,7 @@ macro_rules! make_db_item {
     {$db_id: ident, $id:ident} => {
         #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
         pub struct $db_id {
-            id : crate :: DbId,
+            id : $crate :: DbId,
             inner: std::rc::Rc<std::cell::RefCell<$id>>
         }
         impl $db_id {
@@ -97,6 +97,12 @@ pub struct Database {
     next_db_id: DbId,
     items: HashMap<DbId, DbItem>,
     accounts: DbAccounts,
+}
+
+impl Default for Database {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Database {

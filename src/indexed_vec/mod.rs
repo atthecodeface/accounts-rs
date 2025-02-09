@@ -8,5 +8,5 @@ mod vec_with_index;
 pub use index::Idx;
 pub use indexed_slice::IndexedSlice;
 pub use indexed_vec::IndexedVec;
-pub use strings_with_index::{StringIndex, StringsWithIndex};
-pub use vec_with_index::{IndexKey, VecWithIndex};
+pub use strings_with_index::StringsWithIndex;
+pub use vec_with_index::VecWithIndex;

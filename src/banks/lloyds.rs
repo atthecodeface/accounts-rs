@@ -60,7 +60,7 @@ impl CsvTransaction {
         let ttype = TransactionType::parse(ttype.unwrap_or(""), !debit.is_zero())?;
 
         let account_desc = {
-            if self.sort_code != "" {
+            if !self.sort_code.is_empty() {
                 AccountDesc::parse_uk(self.sort_code.trim_start_matches("'"), self.account_number)?
             } else {
                 AccountDesc::default()

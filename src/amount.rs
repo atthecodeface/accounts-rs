@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::indexed_vec::StringsWithIndex;
 use crate::Error;
-use num_traits::cast::{NumCast, ToPrimitive};
+use num_traits::cast::NumCast;
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct Amount {

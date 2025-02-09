@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{DbId, DbItem, DbItemKind, Error};
+use crate::{DbId, DbItemKind, Error};
 
 //a AccountDesc
 //tp AccountDesc
@@ -76,6 +76,12 @@ pub struct DbAccounts {
     array: Vec<DbAccount>,
     map: HashMap<AccountDesc, DbAccount>,
 }
+impl Default for DbAccounts {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DbAccounts {
     pub fn new() -> Self {
         let array = vec![];
@@ -85,7 +91,7 @@ impl DbAccounts {
     pub fn add_account(&mut self, db_account: DbAccount) {
         self.array.push(db_account.clone());
         self.map
-            .insert(db_account.inner().desc.clone(), db_account.clone());
+            .insert(db_account.inner().desc, db_account.clone());
     }
 }
 
@@ -95,7 +101,7 @@ impl Serialize for DbAccounts {
         S: Serializer,
     {
         use serde::ser::SerializeSeq;
-        let mut seq = serializer.serialize_seq(Some(self.array.len()))?;
+        let seq = serializer.serialize_seq(Some(self.array.len()))?;
         for id in self.array.iter() {
             // let account = self.items[id].account().unwrap();
         }

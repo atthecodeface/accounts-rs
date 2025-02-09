@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::indexed_vec::StringsWithIndex;
 use crate::Error;
 use crate::{AccountDesc, Amount, Date};
-use num_traits::cast::{NumCast, ToPrimitive};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum TransactionType {
