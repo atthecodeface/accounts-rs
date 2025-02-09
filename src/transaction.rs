@@ -11,6 +11,7 @@ pub enum TransactionType {
     BacsIn,
     Fpi,
     Deposit,
+    DirectDebit,
     Unknown,
 }
 
@@ -22,6 +23,8 @@ impl TransactionType {
             Ok(Self::BacsIn)
         } else if s == "FPI" {
             Ok(Self::Fpi)
+        } else if s == "DD" {
+            Ok(Self::DirectDebit)
         } else {
             Ok(Self::Unknown)
         }

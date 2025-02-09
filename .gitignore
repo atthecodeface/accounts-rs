@@ -13,6 +13,7 @@
 *.jpg
 *.png
 *.gray
+*.csv
 _build
 target/
 Cargo.lock
