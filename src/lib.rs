@@ -42,8 +42,11 @@ pub use amount::Amount;
 
 mod receivables;
 
+mod account_desc;
+pub use account_desc::AccountDesc;
+
 mod account;
-pub use account::{Account, AccountDesc, DbAccount, DbAccounts};
+pub use account::{Account, DbAccount, DbAccounts};
 
 mod transaction;
 pub use transaction::{DbTransaction, Transaction, TransactionType};

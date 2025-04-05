@@ -4,6 +4,7 @@ use crate::{AccountDesc, Amount, Date, Error, Transaction, TransactionType};
 
 //a CsvTransaction
 //tp CsvTransaction
+/// A transaction as it appears in a Lloyds CSV export
 #[derive(Debug, serde::Deserialize)]
 pub struct CsvTransaction {
     /// Date
@@ -32,39 +33,40 @@ pub struct CsvTransaction {
     balance: Option<String>,
 }
 
-//ip CsvTransaction
-impl CsvTransaction {
-    pub fn into_transaction(self) -> Result<Transaction, Error> {
-        if self.balance.is_none() {
+//ip TryFrom<CsvTransaction> for Transaction
+impl TryFrom<CsvTransaction> for Transaction {
+    type Error = Error;
+    fn try_from(csv: CsvTransaction) -> Result<Transaction, Error> {
+        if csv.balance.is_none() {
             return Err(Error::ParseTransaction(format!(
-                "CSV transaction had no balance field value {self:?}"
+                "CSV transaction had no balance field value {csv:?}"
             )));
         }
-        let date = Date::parse(&self.date, false)?;
+        let date = Date::parse(&csv.date, false)?;
         let mut debit = None;
-        if let Some(d) = &self.debit {
+        if let Some(d) = &csv.debit {
             let amount: Amount = d.parse()?;
             debit = Some(amount);
         };
         let debit = debit.unwrap_or_default();
         let mut credit = None;
-        if let Some(d) = &self.credit {
+        if let Some(d) = &csv.credit {
             let amount: Amount = d.parse()?;
             credit = Some(amount);
         };
         let credit = credit.unwrap_or_default();
         let mut balance = None;
-        if let Some(d) = &self.balance {
+        if let Some(d) = &csv.balance {
             let amount: Amount = d.parse()?;
             balance = Some(amount);
         };
         let balance = balance.unwrap_or_default();
-        let ttype: Option<&str> = self.ttype.as_deref();
+        let ttype: Option<&str> = csv.ttype.as_deref();
         let ttype = TransactionType::parse(ttype.unwrap_or(""), !debit.is_zero())?;
 
         let account_desc = {
-            if !self.sort_code.is_empty() {
-                AccountDesc::parse_uk(self.sort_code.trim_start_matches("'"), self.account_number)?
+            if !csv.sort_code.is_empty() {
+                AccountDesc::parse_uk(csv.sort_code.trim_start_matches("'"), csv.account_number)?
             } else {
                 AccountDesc::default()
             }
@@ -73,7 +75,7 @@ impl CsvTransaction {
             date,
             ttype,
             account_desc,
-            description: self.description,
+            description: csv.description,
             debit,
             credit,
             balance,
@@ -81,10 +83,12 @@ impl CsvTransaction {
     }
 }
 
-pub fn read_transactions_csv<R: std::io::Read>(
-    // catalog: &mut Catalog,
-    reader: R,
-) -> Result<Vec<Transaction>, Error> {
+//a Public functions
+//fp read_transactions_csv
+/// Read a CSV transactions file and return a Vec<Transaction>
+///
+/// All the transactions must belong to the same AccountDesc
+pub fn read_transactions_csv<R: std::io::Read>(reader: R) -> Result<Vec<Transaction>, Error> {
     let mut csv_reader = csv::ReaderBuilder::new()
         .has_headers(true)
         .quoting(false)
@@ -92,7 +96,7 @@ pub fn read_transactions_csv<R: std::io::Read>(
     let mut result = vec![];
     for record in csv_reader.deserialize() {
         let record: CsvTransaction = record?;
-        let transaction = record.into_transaction()?;
+        let transaction = record.try_into()?;
         result.push(transaction);
     }
     let result: Vec<Transaction> = result.into_iter().rev().collect();
