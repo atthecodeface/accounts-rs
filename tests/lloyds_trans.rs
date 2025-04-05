@@ -10,6 +10,6 @@ const Stuff: &str = r##"Transaction Date,Transaction Type,Sort Code,Account Numb
 #[test]
 fn test_me() -> Result<(), Box<dyn std::error::Error>> {
     lloyds::read_transactions_csv(Stuff.as_bytes())?;
-    assert!(false);
+    // assert!(false);
     Ok(())
 }

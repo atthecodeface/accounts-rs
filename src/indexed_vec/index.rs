@@ -22,6 +22,7 @@ macro_rules! make_index {
             }
         }
         impl $id {
+            #[allow(dead_code)]
             pub fn increment(self) -> Self {
                 Self(self.0 + 1)
             }

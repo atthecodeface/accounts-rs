@@ -2,6 +2,8 @@
 // 28/08/2024,FPI,'30-91-74,02344812,NAME REASON,,20.00,12004.61
 use crate::{AccountDesc, Amount, Date, Error, Transaction, TransactionType};
 
+//a CsvTransaction
+//tp CsvTransaction
 #[derive(Debug, serde::Deserialize)]
 pub struct CsvTransaction {
     /// Date
@@ -30,6 +32,7 @@ pub struct CsvTransaction {
     balance: Option<String>,
 }
 
+//ip CsvTransaction
 impl CsvTransaction {
     pub fn into_transaction(self) -> Result<Transaction, Error> {
         if self.balance.is_none() {
@@ -40,19 +43,19 @@ impl CsvTransaction {
         let date = Date::parse(&self.date, false)?;
         let mut debit = None;
         if let Some(d) = &self.debit {
-            let amount = Amount::parse(d)?;
+            let amount: Amount = d.parse()?;
             debit = Some(amount);
         };
         let debit = debit.unwrap_or_default();
         let mut credit = None;
         if let Some(d) = &self.credit {
-            let amount = Amount::parse(d)?;
+            let amount: Amount = d.parse()?;
             credit = Some(amount);
         };
         let credit = credit.unwrap_or_default();
         let mut balance = None;
         if let Some(d) = &self.balance {
-            let amount = Amount::parse(d)?;
+            let amount: Amount = d.parse()?;
             balance = Some(amount);
         };
         let balance = balance.unwrap_or_default();

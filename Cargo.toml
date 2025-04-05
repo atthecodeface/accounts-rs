@@ -37,4 +37,6 @@ version = "1.0.91"
 version = "4.5.2"
 features = ["string"]
 
-
+[[bin]]
+name = "database"
+path = "bin/database.rs"

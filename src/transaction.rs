@@ -1,8 +1,13 @@
+//a Imports
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
 use crate::{AccountDesc, Amount, Date};
 
+//a TransactionType
+//tp TransactionType
+/// A transaction type can be a BACS transfer, deposit at the bank,
+/// direct debit, etc
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum TransactionType {
     StandingOrder,
@@ -13,7 +18,10 @@ pub enum TransactionType {
     Unknown,
 }
 
+//ip TransactionType
 impl TransactionType {
+    //cp parse
+    /// Parse a string into a transaction type
     pub fn parse(s: &str, is_debit: bool) -> Result<Self, Error> {
         if s == "SO" {
             Ok(Self::StandingOrder)
@@ -29,6 +37,9 @@ impl TransactionType {
     }
 }
 
+//a Transaction, DbTransaction
+//tp Transaction
+/// A bank transaction
 #[derive(Debug, Clone, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct Transaction {
     /// Date
@@ -48,10 +59,12 @@ pub struct Transaction {
     pub balance: Amount,
 }
 
+//ip Transaction
 impl Transaction {
     pub fn balance_delta(&self) -> Amount {
         (self.credit.value() - self.debit.value()).into()
     }
 }
 
+//tp DbTransaction
 crate::make_db_item!(DbTransaction, Transaction);
