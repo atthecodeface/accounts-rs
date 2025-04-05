@@ -27,6 +27,11 @@ macro_rules! make_index {
                 Self(self.0 + 1)
             }
         }
+        impl std::fmt::Display for $id {
+            fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                self.0.fmt(fmt)
+            }
+        }
 
     }
 }

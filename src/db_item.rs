@@ -40,6 +40,9 @@ pub trait DbItemKind: Clone + Serialize + for<'a> Deserialize<'a> {
 }
 
 //mp make_db_item
+/// Construct a type that can be Added to the database as a DbItemType
+///
+/// The type is a Rc<RefCell<type>>, with an additional DbId id.
 #[macro_export]
 macro_rules! make_db_item {
     {$db_id: ident, $id:ident} => {
@@ -99,6 +102,12 @@ pub struct DbItem {
 
 //ip DbItem
 impl DbItem {
+    pub fn id(&self) -> DbId {
+        self.id
+    }
+    pub fn itype(&self) -> DbItemType {
+        self.itype
+    }
     pub fn account(&self) -> Option<DbAccount> {
         if let DbItemTypeE::Account(account) = &self.value {
             Some(account.clone())

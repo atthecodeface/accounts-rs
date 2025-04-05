@@ -1,4 +1,7 @@
 use thiserror::Error;
+
+use crate::DbId;
+
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Csv {0}")]
@@ -11,4 +14,8 @@ pub enum Error {
     ParseAccount(String),
     #[error("transaction log {0}")]
     TransactionLog(String),
+    #[error("deserialization error {0}")]
+    Deserialization(String),
+    #[error("duplicate item id {0}")]
+    DuplicateItemId(DbId),
 }

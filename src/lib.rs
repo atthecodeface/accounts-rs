@@ -66,6 +66,9 @@ pub use banks::lloyds;
 mod db_id;
 pub use db_id::DbId;
 
+mod db_vec;
+pub use db_vec::DbVec;
+
 #[macro_use]
 mod db_item;
 pub use db_item::{DbItem, DbItemKind, DbItemType};

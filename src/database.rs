@@ -24,14 +24,14 @@
 //! are held within the bank)
 
 //a Imports
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 
-use crate::DbTransaction;
-use crate::DbTransactions;
+use crate::Error;
 use crate::{Account, DbAccTransaction, DbAccount, DbAccounts};
 use crate::{DbId, DbItem, DbItemKind, DbItemType};
 use crate::{DbRelatedParties, DbRelatedParty};
+use crate::{DbTransaction, DbTransactions};
 
 //a Database
 //tp Database
@@ -112,5 +112,54 @@ impl Database {
         self.accounts.add_account(item.account().unwrap());
     }
 
+    //mp serialize_as_array
+    pub fn serialize_as_array<S>(
+        &self,
+        serializer: S,
+    ) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeSeq;
+        let len = self.items.len();
+        let mut seq = serializer.serialize_seq(Some(len))?;
+        for i in self.items.values() {
+            seq.serialize_element(i)?;
+        }
+        seq.end()
+    }
+
+    //mp deserialize_from_array
+    pub fn deserialize_from_array<'de, D>(deserializer: D) -> Result<Self, Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let array = Vec::<DbItem>::deserialize(deserializer)
+            .map_err(|e| Error::Deserialization(e.to_string()))?;
+        Self::try_from(array)
+    }
+
     //zz All done
+}
+
+//ip TryFrom<Vec<DbItem>> for Database
+impl std::convert::TryFrom<Vec<DbItem>> for Database {
+    type Error = Error;
+    fn try_from(mut array: Vec<DbItem>) -> Result<Database, Error> {
+        let mut d = Database::new();
+        let mut next_db_id = DbId::default();
+        for item in array {
+            let id = item.id();
+            if d.items.contains_key(&id) {
+                return Err(Error::DuplicateItemId(id));
+            }
+            d.items.insert(id, item);
+            next_db_id = next_db_id.max(id).increment();
+        }
+        d.next_db_id = next_db_id;
+        // Run through all items - look for accounts, and rebuild the Accounts from the database
+        // Run through all items - look for transactions, and rebuild the Transactions from the database
+        // Run through all items - look for related parties, and rebuild the RelatedParties from the database
+        Ok(d)
+    }
 }
