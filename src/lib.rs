@@ -40,6 +40,9 @@ pub use base_types::{Date, Entity};
 mod amount;
 pub use amount::Amount;
 
+mod related_party;
+pub use related_party::{DbRelatedParties, DbRelatedParty, RelatedParty};
+
 mod receivables;
 
 mod account_desc;
@@ -48,8 +51,11 @@ pub use account_desc::AccountDesc;
 mod account;
 pub use account::{Account, DbAccount, DbAccounts};
 
+mod account_transaction;
+pub use account_transaction::{AccTransaction, AccTransactionType, DbAccTransaction};
+
 mod transaction;
-pub use transaction::{DbTransaction, Transaction, TransactionType};
+pub use transaction::{DbTransaction, DbTransactions, Transaction, TransactionType};
 
 // mod invoices;
 // mod account_transactions;
@@ -57,6 +63,12 @@ pub use transaction::{DbTransaction, Transaction, TransactionType};
 mod banks;
 pub use banks::lloyds;
 
+mod db_id;
+pub use db_id::DbId;
+
 #[macro_use]
+mod db_item;
+pub use db_item::{DbItem, DbItemKind, DbItemType};
+
 mod database;
-pub use database::{Database, DbId, DbItem, DbItemKind, DbItemType};
+pub use database::Database;

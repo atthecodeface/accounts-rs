@@ -1,16 +1,21 @@
+//a Imports
 use serde::{Deserialize, Serialize};
 
 use crate::indexed_vec::StringsWithIndex;
 use crate::Error;
 
+//a EntityTable
 #[derive(Debug)]
 pub struct EntityTable<'et> {
     names: StringsWithIndex<'et>,
 }
 
+//a Entity
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct Entity {}
 
+//a Date
+//tp Date
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct Date {
     value: usize,
