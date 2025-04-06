@@ -39,11 +39,7 @@ impl<D: CmdData> SubcommandSet<D> {
     ///
     /// This matches the subcommands name with one from the set, and
     /// invokes the handler on the data
-    fn handle_subcommand_matches(
-        &mut self,
-        data: &mut D,
-        matches: &ArgMatches,
-    ) -> Result<(), D::Error> {
+    fn handle_matches(&mut self, data: &mut D, matches: &ArgMatches) -> Result<(), D::Error> {
         if let Some((name, submatches)) = matches.subcommand() {
             if let Some(x) = self.sub_cmds.get(name) {
                 return x.handle(data, submatches);
@@ -58,7 +54,7 @@ impl<D: CmdData> SubcommandSet<D> {
 pub struct CommandSet<D: CmdData> {
     cmd: Command,
     cmd_interactive: Option<Command>,
-    sub_cmds: HashMap<String, Box<dyn Subcommand<D>>>,
+    sub_cmds: SubcommandSet<D>,
     matches: Option<ArgMatches>,
 }
 
@@ -67,7 +63,7 @@ impl<D: CmdData> CommandSet<D> {
     //cp new
     /// Create a new set of subcommands for a [Command]
     pub fn new(cmd: Command) -> Self {
-        let sub_cmds = HashMap::new();
+        let sub_cmds = SubcommandSet::new();
         Self {
             cmd,
             cmd_interactive: None,
@@ -118,10 +114,7 @@ impl<D: CmdData> CommandSet<D> {
     /// This includes the handler function which handles those
     /// invocations of the subcommand
     pub fn new_subcommand<H: Subcommand<D> + 'static>(&mut self, subcommand: H) {
-        let cmd = subcommand.create_subcommand();
-        let name = cmd.get_name().into();
-        let handler = Box::new(subcommand);
-        self.sub_cmds.insert(name, handler);
+        let cmd = self.sub_cmds.new_subcommand(subcommand);
         self.map_cmd(move |c| c.subcommand(cmd));
     }
 
@@ -133,12 +126,7 @@ impl<D: CmdData> CommandSet<D> {
     /// invokes the handler on the data
     fn handle_subcommand_matches(&mut self, data: &mut D) -> Result<(), D::Error> {
         let matches = self.matches.as_ref().unwrap();
-        if let Some((name, submatches)) = matches.subcommand() {
-            if let Some(x) = self.sub_cmds.get(name) {
-                return x.handle(data, submatches);
-            }
-        }
-        Ok(())
+        self.sub_cmds.handle_matches(data, matches)
     }
 
     //mp handle_matches
