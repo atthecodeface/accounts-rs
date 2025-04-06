@@ -1,8 +1,8 @@
 //a Imports
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 
 use crate::cmdline::SubcommandSet;
-use crate::{Database, Error};
+use crate::{Database, Error, FileFormat, FileType};
 
 //fp subcommand
 pub fn subcommand(sub_cmds: &mut SubcommandSet<Database>) {
@@ -24,7 +24,7 @@ pub fn subcommand(sub_cmds: &mut SubcommandSet<Database>) {
 pub fn handle_command(db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
     let write_db = matches.get_one::<String>("write_database").unwrap();
     eprintln!("write_db : {write_db}");
-    let w = vec![];
+    let mut w = vec![];
     let mut s = serde_json::Serializer::pretty(w);
     db.serialize_as_array(&mut s)?;
     let w = s.into_inner();

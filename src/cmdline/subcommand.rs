@@ -1,7 +1,6 @@
 //a Imports
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
-use crate::{Database, Error, FileFormat, FileType};
 
 use crate::cmdline::CmdData;
 
@@ -145,41 +144,42 @@ impl<D: CmdData> SubcommandSet<D> {
             std::process::exit(4);
         }
 
-        let interactive = self
+        if *(self
             .matches
             .as_ref()
             .unwrap()
             .get_one::<bool>("interactive")
-            .unwrap();
-        let interactive = *interactive;
-        while interactive {
-            use std::io::Write;
-            let mut line = String::new();
-            print!("database> ");
-            std::io::stdout().flush().unwrap();
-            let Ok(n) = std::io::stdin().read_line(&mut line) else {
-                break;
-            };
-            if n == 0 {
-                break;
-            }
-            let split = line.trim().split(' ');
-            match self
-                .cmd_interactive
-                .as_mut()
-                .unwrap()
-                .try_get_matches_from_mut(split)
-            {
-                Err(e) => {
-                    let _ = e.print();
+            .unwrap())
+        {
+            loop {
+                use std::io::Write;
+                let mut line = String::new();
+                print!("database> ");
+                std::io::stdout().flush().unwrap();
+                let Ok(n) = std::io::stdin().read_line(&mut line) else {
+                    break;
+                };
+                if n == 0 {
+                    break;
                 }
-                Ok(matches) => {
-                    self.matches = Some(matches);
-                    match self.handle_subcommand_matches(&mut data) {
-                        Err(e) => {
-                            eprintln!("Error: {e}");
+                let split = line.trim().split(' ');
+                match self
+                    .cmd_interactive
+                    .as_mut()
+                    .unwrap()
+                    .try_get_matches_from_mut(split)
+                {
+                    Err(e) => {
+                        let _ = e.print();
+                    }
+                    Ok(matches) => {
+                        self.matches = Some(matches);
+                        match self.handle_subcommand_matches(&mut data) {
+                            Err(e) => {
+                                eprintln!("Error: {e}");
+                            }
+                            _ => (),
                         }
-                        _ => (),
                     }
                 }
             }

@@ -24,13 +24,13 @@
 //! are held within the bank)
 
 //a Imports
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serializer};
 use std::collections::HashMap;
 
-use crate::{Account, DbAccTransaction, DbAccount, DbAccounts};
-use crate::{DbId, DbItem, DbItemKind, DbItemType};
-use crate::{DbRelatedParties, DbRelatedParty};
-use crate::{DbTransaction, DbTransactions};
+use crate::{Account, DbAccounts};
+use crate::{DbId, DbItem, DbItemKind};
+use crate::DbRelatedParties;
+use crate::DbTransactions;
 use crate::{Error, FileFormat};
 
 //a Database
@@ -156,7 +156,7 @@ impl Database {
 //ip TryFrom<Vec<DbItem>> for Database
 impl std::convert::TryFrom<Vec<DbItem>> for Database {
     type Error = Error;
-    fn try_from(mut array: Vec<DbItem>) -> Result<Database, Error> {
+    fn try_from(array: Vec<DbItem>) -> Result<Database, Error> {
         let mut d = Database::new();
         let mut next_db_id = DbId::default();
         let mut old_to_new_id_map = HashMap::new();

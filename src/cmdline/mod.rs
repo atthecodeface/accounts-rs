@@ -1,7 +1,6 @@
 //a Imports
-use clap::{Arg, ArgAction, ArgMatches, Command};
 
-use crate::{Database, Error, FileFormat, FileType};
+use crate::{Database, Error};
 
 mod traits;
 pub use traits::CmdData;
