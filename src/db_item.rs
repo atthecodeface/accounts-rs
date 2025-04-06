@@ -53,8 +53,16 @@ macro_rules! make_db_item {
 
         impl $db_id {
             #[allow(dead_code)]
-            fn inner(&self) -> std::cell::Ref<$id> {
+            pub fn inner(&self) -> std::cell::Ref<$id> {
                 self.inner.borrow()
+            }
+            #[allow(dead_code)]
+            pub fn borrow(&self) -> std::cell::Ref<$id> {
+                self.inner.borrow()
+            }
+            #[allow(dead_code)]
+            pub fn borrow_mut(&self) -> std::cell::RefMut<$id> {
+                self.inner.borrow_mut()
             }
         }
 

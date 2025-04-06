@@ -23,7 +23,7 @@ impl std::fmt::Display for AccountDesc {
                 let sc0 = (sort_code / 10_000) % 100;
                 let sc1 = (sort_code / 100) % 100;
                 let sc2 = sort_code % 100;
-                write!(fmt, "{sc0}-{sc1}-{sc2}:{}", account)
+                write!(fmt, "{sc0:02}-{sc1:02}-{sc2:02}:{:08}", account)
             }
             AccountDesc::None => {
                 write!(fmt, "<None>")

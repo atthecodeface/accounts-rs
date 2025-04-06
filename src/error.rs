@@ -10,7 +10,9 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("{0}")]
     Json(#[from] serde_json::Error),
-    #[error("failed to parse transaction {0}")]
+    #[error("{0}")]
+    Yaml(#[from] serde_yaml::Error),
+    #[error("{0}")]
     ParseTransaction(String),
     #[error("failed to parse date {0}")]
     ParseDate(String),

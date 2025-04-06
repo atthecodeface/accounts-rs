@@ -33,6 +33,12 @@ impl Account {
             transaction_log,
         }
     }
+    pub fn org(&self) -> &str {
+        &self.org
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 }
 
 //tp DbAccount

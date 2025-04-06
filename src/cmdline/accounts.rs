@@ -19,7 +19,8 @@ impl Subcommand<Database> for AccountsList {
     fn handle(&mut self, db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
         println!("Accounts:");
         for k in db.accounts().descs() {
-            println!("  {k}");
+            let account = db.accounts().get_account(k).unwrap().borrow();
+            println!("  {k} : {} - {}", account.org(), account.name());
         }
         Ok(())
     }

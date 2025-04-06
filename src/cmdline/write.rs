@@ -30,11 +30,15 @@ impl Subcommand<Database> for Write {
     fn handle(&mut self, db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
         let write_db = matches.get_one::<String>("write_database").unwrap();
         eprintln!("write_db : {write_db}");
-        let w = vec![];
-        let mut s = serde_json::Serializer::pretty(w);
+        let mut w = vec![];
+        let mut s = serde_yaml::Serializer::new(&mut w);
         db.serialize_as_array(&mut s)?;
-        let w = s.into_inner();
         let s = std::str::from_utf8(&w).unwrap();
+        // let w = vec![];
+        // let mut s = serde_json::Serializer::pretty(w);
+        // db.serialize_as_array(&mut s)?;
+        // let w = s.into_inner();
+        // let s = std::str::from_utf8(&w).unwrap();
         eprintln!("{s}");
         Ok(())
     }

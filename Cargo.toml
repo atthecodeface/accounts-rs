@@ -15,6 +15,7 @@ repository = "https://github.com/atthecodeface/rust_accounts"
 [dependencies]
 num-traits = "0.2.19"
 regex = "1.11.1"
+serde_yaml = "0.9.34"
 
 [dependencies.csv]
 version = "1.3"
