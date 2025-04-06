@@ -1,7 +1,7 @@
 //a Imports
 use clap::{Arg, ArgMatches, Command};
 
-use crate::cmdline::{Subcommand, SubcommandSet};
+use crate::cmdline::Subcommand;
 use crate::{Database, Error};
 
 //a Write
@@ -10,7 +10,7 @@ pub struct Write();
 
 //ip Subcommand for Write
 impl Subcommand<Database> for Write {
-    //fp create_subcommand
+    //mp create_subcommand
     fn create_subcommand(&self) -> Command {
         Command::new("write")
             .about("Write out the database")
@@ -26,6 +26,7 @@ impl Subcommand<Database> for Write {
             )
     }
 
+    //mp handle
     fn handle(&self, db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
         let write_db = matches.get_one::<String>("write_database").unwrap();
         eprintln!("write_db : {write_db}");

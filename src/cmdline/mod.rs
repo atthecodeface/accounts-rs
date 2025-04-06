@@ -6,7 +6,7 @@ mod traits;
 pub use traits::{CmdData, Subcommand};
 
 mod subcommand;
-pub use subcommand::SubcommandSet;
+pub use subcommand::CommandSet;
 
 impl CmdData for Database {
     type Error = Error;
@@ -18,6 +18,9 @@ impl CmdData for Database {
 //        eprintln!("csv : {csv:?}");
 //    }
 
-// pub mod accounts;
 pub mod database;
-pub mod write;
+
+mod accounts;
+mod write;
+pub use accounts::Accounts;
+pub use write::Write;

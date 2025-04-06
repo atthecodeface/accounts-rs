@@ -1,62 +1,77 @@
 //a Imports
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
+use std::collections::HashMap;
+
 use crate::cmdline::{CmdData, Subcommand};
-
-//a Subcommand
-//ti Subcommand
-/// A subcommand in a [SubcommandSet]
-struct SubcommandEntry<D>
-where
-    D: CmdData,
-{
-    name: String,
-    handler: Box<dyn Subcommand<D>>,
-}
-
-//ip Debug for SubcommandEntry
-impl<D> std::fmt::Debug for SubcommandEntry<D>
-where
-    D: CmdData,
-{
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(fmt, "Subcmd('{}')", self.name)
-    }
-}
 
 //a SubcommandSet
 //tp SubcommandSet
 pub struct SubcommandSet<D: CmdData> {
-    cmd: Command,
-    cmd_interactive: Option<Command>,
-    sub_cmds: Vec<SubcommandEntry<D>>,
-    matches: Option<ArgMatches>,
-}
-
-//ip Deref for SubcommandSet
-impl<D: CmdData> std::ops::Deref for SubcommandSet<D> {
-    type Target = Command;
-    fn deref(&self) -> &Command {
-        &self.cmd
-    }
-}
-
-//ip DerefMut for SubcommandSet
-impl<D: CmdData> std::ops::DerefMut for SubcommandSet<D> {
-    fn deref_mut(&mut self) -> &mut Command {
-        &mut self.cmd
-    }
+    sub_cmds: HashMap<String, Box<dyn Subcommand<D>>>,
 }
 
 //ip SubcommandSet
 impl<D: CmdData> SubcommandSet<D> {
     //cp new
     /// Create a new set of subcommands for a [Command]
+    pub fn new() -> Self {
+        let sub_cmds = HashMap::new();
+        Self { sub_cmds }
+    }
+
+    //mp new_subcommand
+    /// Add a new subcommand to the command set
+    ///
+    /// This includes the handler function which handles those
+    /// invocations of the subcommand
+    pub fn new_subcommand<H: Subcommand<D> + 'static>(&mut self, subcommand: H) -> Command {
+        let cmd = subcommand.create_subcommand();
+        let name = cmd.get_name().into();
+        let handler = Box::new(subcommand);
+        self.sub_cmds.insert(name, handler);
+        cmd
+    }
+
+    //mi handle_subcommand_matches
+    /// Handle the current matches for the command given that it has
+    /// (probably) a subcommand
+    ///
+    /// This matches the subcommands name with one from the set, and
+    /// invokes the handler on the data
+    fn handle_subcommand_matches(
+        &mut self,
+        data: &mut D,
+        matches: &ArgMatches,
+    ) -> Result<(), D::Error> {
+        if let Some((name, submatches)) = matches.subcommand() {
+            if let Some(x) = self.sub_cmds.get(name) {
+                return x.handle(data, submatches);
+            }
+        }
+        Ok(())
+    }
+}
+
+//a CommandSet
+//tp CommandSet
+pub struct CommandSet<D: CmdData> {
+    cmd: Command,
+    cmd_interactive: Option<Command>,
+    sub_cmds: HashMap<String, Box<dyn Subcommand<D>>>,
+    matches: Option<ArgMatches>,
+}
+
+//ip CommandSet
+impl<D: CmdData> CommandSet<D> {
+    //cp new
+    /// Create a new set of subcommands for a [Command]
     pub fn new(cmd: Command) -> Self {
+        let sub_cmds = HashMap::new();
         Self {
             cmd,
             cmd_interactive: None,
-            sub_cmds: vec![],
+            sub_cmds,
             matches: None,
         }
     }
@@ -106,7 +121,7 @@ impl<D: CmdData> SubcommandSet<D> {
         let cmd = subcommand.create_subcommand();
         let name = cmd.get_name().into();
         let handler = Box::new(subcommand);
-        self.sub_cmds.push(SubcommandEntry { name, handler });
+        self.sub_cmds.insert(name, handler);
         self.map_cmd(move |c| c.subcommand(cmd));
     }
 
@@ -119,10 +134,8 @@ impl<D: CmdData> SubcommandSet<D> {
     fn handle_subcommand_matches(&mut self, data: &mut D) -> Result<(), D::Error> {
         let matches = self.matches.as_ref().unwrap();
         if let Some((name, submatches)) = matches.subcommand() {
-            for s in self.sub_cmds.iter() {
-                if name == s.name {
-                    return s.handler.handle(data, submatches);
-                }
+            if let Some(x) = self.sub_cmds.get(name) {
+                return x.handle(data, submatches);
             }
         }
         Ok(())
