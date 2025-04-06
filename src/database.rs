@@ -27,11 +27,11 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 
-use crate::Error;
 use crate::{Account, DbAccTransaction, DbAccount, DbAccounts};
 use crate::{DbId, DbItem, DbItemKind, DbItemType};
 use crate::{DbRelatedParties, DbRelatedParty};
 use crate::{DbTransaction, DbTransactions};
+use crate::{Error, FileFormat};
 
 //a Database
 //tp Database
@@ -139,6 +139,17 @@ impl Database {
         Self::try_from(array)
     }
 
+    //cp deserialize
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+        ifmt: FileFormat,
+    ) -> Result<Self, Error> {
+        match ifmt {
+            FileFormat::Array => Self::deserialize_from_array(deserializer),
+            _ => Err(Error::FormatNotSupported(ifmt, "database")),
+        }
+    }
+
     //zz All done
 }
 
@@ -148,13 +159,17 @@ impl std::convert::TryFrom<Vec<DbItem>> for Database {
     fn try_from(mut array: Vec<DbItem>) -> Result<Database, Error> {
         let mut d = Database::new();
         let mut next_db_id = DbId::default();
+        let mut old_to_new_id_map = HashMap::new();
+        let mut new_to_old_id_map = HashMap::new();
         for item in array {
-            let id = item.id();
-            if d.items.contains_key(&id) {
-                return Err(Error::DuplicateItemId(id));
+            let old_id = item.id();
+            if old_to_new_id_map.contains_key(&old_id) {
+                return Err(Error::DuplicateItemId(old_id));
             }
-            d.items.insert(id, item);
-            next_db_id = next_db_id.max(id).increment();
+            d.items.insert(next_db_id, item);
+            old_to_new_id_map.insert(old_id, next_db_id);
+            new_to_old_id_map.insert(next_db_id, old_id);
+            next_db_id = next_db_id.increment();
         }
         d.next_db_id = next_db_id;
         // Run through all items - look for accounts, and rebuild the Accounts from the database

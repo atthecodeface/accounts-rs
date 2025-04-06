@@ -4,6 +4,69 @@ use serde::{Deserialize, Serialize};
 use crate::indexed_vec::StringsWithIndex;
 use crate::Error;
 
+//a FileType
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileType {
+    Csv,
+    Json,
+    Yaml,
+}
+impl std::fmt::Display for FileType {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            FileType::Csv => write!(fmt, "csv"),
+            FileType::Json => write!(fmt, "json"),
+            FileType::Yaml => write!(fmt, "yaml"),
+        }
+    }
+}
+impl FileType {
+    pub fn from_filename(f: &str) -> Result<Self, Error> {
+        if f.ends_with(".yaml") {
+            Ok(Self::Yaml)
+        } else if f.ends_with(".json") {
+            Ok(Self::Json)
+        } else if f.ends_with(".csv") {
+            Ok(Self::Csv)
+        } else {
+            Err(Error::UnknownFileExtension(f.to_string()))
+        }
+    }
+}
+
+//a FileFormat
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileFormat {
+    Array,
+    Dictionary,
+}
+impl std::fmt::Display for FileFormat {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            FileFormat::Array => write!(fmt, "array"),
+            FileFormat::Dictionary => write!(fmt, "dict"),
+        }
+    }
+}
+impl std::str::FromStr for FileFormat {
+    type Err = Error;
+
+    // Required method
+    fn from_str(s: &str) -> Result<Self, Error> {
+        if s == "array" {
+            Ok(Self::Array)
+        } else if s == "dict" {
+            Ok(Self::Dictionary)
+        } else if s == "map" {
+            Ok(Self::Dictionary)
+        } else if s == "dictionary" {
+            Ok(Self::Dictionary)
+        } else {
+            Err(Error::UnknownFileFormat(s.to_string()))
+        }
+    }
+}
+
 //a EntityTable
 #[derive(Debug)]
 pub struct EntityTable<'et> {

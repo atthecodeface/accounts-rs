@@ -27,6 +27,10 @@
 // Add a transaction that has two entities: an internal account and an external entity such as a bank account
 //
 // Such a transaction can be a forecast
+//
+// Add ability to add AccTransaction to database
+//
+// Find AccountDesc in accounts
 
 //a Imports
 mod error;
@@ -35,7 +39,7 @@ pub use error::Error;
 mod indexed_vec;
 
 mod base_types;
-pub use base_types::{Date, Entity};
+pub use base_types::{Date, Entity, FileFormat, FileType};
 
 mod amount;
 pub use amount::Amount;
@@ -75,3 +79,5 @@ pub use db_item::{DbItem, DbItemKind, DbItemType};
 
 mod database;
 pub use database::Database;
+
+pub mod cmdline;
