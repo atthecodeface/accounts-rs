@@ -11,7 +11,7 @@ pub struct Write();
 //ip Subcommand for Write
 impl Subcommand<Database> for Write {
     //mp create_subcommand
-    fn create_subcommand(&self) -> Command {
+    fn create_subcommand(&mut self) -> Command {
         Command::new("write")
             .about("Write out the database")
             .arg(
@@ -27,7 +27,7 @@ impl Subcommand<Database> for Write {
     }
 
     //mp handle
-    fn handle(&self, db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
+    fn handle(&mut self, db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
         let write_db = matches.get_one::<String>("write_database").unwrap();
         eprintln!("write_db : {write_db}");
         let w = vec![];

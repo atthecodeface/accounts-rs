@@ -6,7 +6,7 @@ mod traits;
 pub use traits::{CmdData, Subcommand};
 
 mod subcommand;
-pub use subcommand::CommandSet;
+pub use subcommand::{CommandSet, SubcommandSet};
 
 impl CmdData for Database {
     type Error = Error;

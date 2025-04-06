@@ -8,6 +8,6 @@ pub trait CmdData {
 }
 //tt Subcommand
 pub trait Subcommand<D: CmdData> {
-    fn create_subcommand(&self) -> Command;
-    fn handle(&self, data: &mut D, matches: &ArgMatches) -> Result<(), D::Error>;
+    fn create_subcommand(&mut self) -> Command;
+    fn handle(&mut self, data: &mut D, matches: &ArgMatches) -> Result<(), D::Error>;
 }

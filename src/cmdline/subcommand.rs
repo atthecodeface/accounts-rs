@@ -7,25 +7,35 @@ use crate::cmdline::{CmdData, Subcommand};
 
 //a SubcommandSet
 //tp SubcommandSet
-pub struct SubcommandSet<D: CmdData> {
+pub struct SubcommandSet<D>
+where
+    D: CmdData,
+{
     sub_cmds: HashMap<String, Box<dyn Subcommand<D>>>,
 }
 
-//ip SubcommandSet
-impl<D: CmdData> SubcommandSet<D> {
-    //cp new
-    /// Create a new set of subcommands for a [Command]
-    pub fn new() -> Self {
+//ip Default for SubcommandSet
+impl<D> std::default::Default for SubcommandSet<D>
+where
+    D: CmdData,
+{
+    fn default() -> Self {
         let sub_cmds = HashMap::new();
         Self { sub_cmds }
     }
+}
 
+//ip SubcommandSet
+impl<D> SubcommandSet<D>
+where
+    D: CmdData,
+{
     //mp new_subcommand
     /// Add a new subcommand to the command set
     ///
     /// This includes the handler function which handles those
     /// invocations of the subcommand
-    pub fn new_subcommand<H: Subcommand<D> + 'static>(&mut self, subcommand: H) -> Command {
+    pub fn new_subcommand<H: Subcommand<D> + 'static>(&mut self, mut subcommand: H) -> Command {
         let cmd = subcommand.create_subcommand();
         let name = cmd.get_name().into();
         let handler = Box::new(subcommand);
@@ -33,15 +43,15 @@ impl<D: CmdData> SubcommandSet<D> {
         cmd
     }
 
-    //mi handle_subcommand_matches
+    //mi handle_matches
     /// Handle the current matches for the command given that it has
     /// (probably) a subcommand
     ///
     /// This matches the subcommands name with one from the set, and
     /// invokes the handler on the data
-    fn handle_matches(&mut self, data: &mut D, matches: &ArgMatches) -> Result<(), D::Error> {
+    pub fn handle_matches(&mut self, data: &mut D, matches: &ArgMatches) -> Result<(), D::Error> {
         if let Some((name, submatches)) = matches.subcommand() {
-            if let Some(x) = self.sub_cmds.get(name) {
+            if let Some(x) = self.sub_cmds.get_mut(name) {
                 return x.handle(data, submatches);
             }
         }
@@ -63,7 +73,7 @@ impl<D: CmdData> CommandSet<D> {
     //cp new
     /// Create a new set of subcommands for a [Command]
     pub fn new(cmd: Command) -> Self {
-        let sub_cmds = SubcommandSet::new();
+        let sub_cmds = SubcommandSet::default();
         Self {
             cmd,
             cmd_interactive: None,
@@ -99,6 +109,13 @@ impl<D: CmdData> CommandSet<D> {
         );
         self.map_cmd(|c| {
             c.arg(
+                Arg::new("batch")
+                    .short('b')
+                    .long("batch")
+                    .action(ArgAction::Append)
+                    .help("Batch file to run before interactive commands"),
+            )
+            .arg(
                 Arg::new("interactive")
                     .short('i')
                     .long("interactive")
@@ -138,9 +155,53 @@ impl<D: CmdData> CommandSet<D> {
     /// line loop where each line is parsed with the interactive
     /// command parser, and those matches are handled.
     pub fn handle_matches(&mut self, mut data: D) {
-        if let Err(e) = self.handle_subcommand_matches(&mut data) {
+        let matches = self.matches.as_ref().unwrap();
+        if let Err(e) = self.sub_cmds.handle_matches(&mut data, matches) {
             eprintln!("database : error: {e}");
             std::process::exit(4);
+        }
+
+        let batches: Vec<String> = self
+            .matches
+            .as_ref()
+            .unwrap()
+            .get_many::<String>("batch")
+            .unwrap()
+            .cloned()
+            .collect();
+        for b in batches {
+            let Ok(file) = std::fs::File::open(&b)
+                .map_err(|e| eprintln!("Failed to execute batch file {b} - {e}"))
+            else {
+                return;
+            };
+            use std::io::BufRead;
+            let mut n = 1;
+            let lines = std::io::BufReader::new(file).lines();
+            for line in lines {
+                let Ok(line) = line
+                    .map_err(|e| eprintln!("Failed to read line {n} from batch file {b} - {e}"))
+                else {
+                    return;
+                };
+                n += 1;
+                let split = line.trim().split(' ');
+                match self
+                    .cmd_interactive
+                    .as_mut()
+                    .unwrap()
+                    .try_get_matches_from_mut(split)
+                {
+                    Err(e) => {
+                        let _ = e.print();
+                    }
+                    Ok(submatches) => {
+                        if let Err(e) = self.sub_cmds.handle_matches(&mut data, &submatches) {
+                            eprintln!("Error: {e}");
+                        }
+                    }
+                }
+            }
         }
 
         if *(self
@@ -171,9 +232,8 @@ impl<D: CmdData> CommandSet<D> {
                     Err(e) => {
                         let _ = e.print();
                     }
-                    Ok(matches) => {
-                        self.matches = Some(matches);
-                        if let Err(e) = self.handle_subcommand_matches(&mut data) {
+                    Ok(submatches) => {
+                        if let Err(e) = self.sub_cmds.handle_matches(&mut data, &submatches) {
                             eprintln!("Error: {e}");
                         }
                     }

@@ -10,6 +10,7 @@ pub fn main() {
 
     let mut subcmds = cmdline::CommandSet::new(cmd);
     subcmds.new_subcommand(cmdline::Write::default());
+    subcmds.new_subcommand(cmdline::Accounts::default());
     subcmds.make_interactive();
 
     subcmds.map_cmd(cmdline::database::add_args);

@@ -102,6 +102,11 @@ impl Database {
         }
     }
 
+    //ap accounts
+    pub fn accounts(&self) -> &DbAccounts {
+        &self.accounts
+    }
+
     //mp add_account
     pub fn add_account(&mut self, account: Account) {
         let db_id = self.next_db_id;

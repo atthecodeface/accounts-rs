@@ -65,6 +65,11 @@ impl DbAccounts {
         Self { array, map }
     }
 
+    //mp descs
+    pub fn descs(&self) -> impl std::iter::Iterator<Item = &AccountDesc> {
+        self.map.keys()
+    }
+
     //mp add_account
     pub fn add_account(&mut self, db_account: DbAccount) -> bool {
         if self.has_account(&db_account.inner().desc) {
