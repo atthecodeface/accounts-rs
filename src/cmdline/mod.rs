@@ -3,7 +3,7 @@
 use crate::{Database, Error};
 
 mod traits;
-pub use traits::CmdData;
+pub use traits::{CmdData, Subcommand};
 
 mod subcommand;
 pub use subcommand::SubcommandSet;
@@ -18,5 +18,6 @@ impl CmdData for Database {
 //        eprintln!("csv : {csv:?}");
 //    }
 
+// pub mod accounts;
 pub mod database;
 pub mod write;

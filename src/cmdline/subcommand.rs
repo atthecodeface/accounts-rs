@@ -1,33 +1,26 @@
 //a Imports
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
-use crate::cmdline::CmdData;
+use crate::cmdline::{CmdData, Subcommand};
 
 //a Subcommand
 //ti Subcommand
 /// A subcommand in a [SubcommandSet]
-pub trait CmdHandlerFn<D: CmdData>:
-    Fn(&mut D, &ArgMatches) -> Result<(), D::Error> + 'static
+struct SubcommandEntry<D>
+where
+    D: CmdData,
 {
-}
-
-impl<D: CmdData, T: Fn(&mut D, &ArgMatches) -> Result<(), D::Error> + 'static> CmdHandlerFn<D>
-    for T
-{
-}
-
-struct Subcommand<D: CmdData> {
     name: String,
-    handler: Box<dyn CmdHandlerFn<D>>,
+    handler: Box<dyn Subcommand<D>>,
 }
 
-//ip Debug for Subcommand
-impl<D> std::fmt::Debug for Subcommand<D>
+//ip Debug for SubcommandEntry
+impl<D> std::fmt::Debug for SubcommandEntry<D>
 where
     D: CmdData,
 {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        self.name.fmt(fmt)
+        write!(fmt, "Subcmd('{}')", self.name)
     }
 }
 
@@ -36,7 +29,7 @@ where
 pub struct SubcommandSet<D: CmdData> {
     cmd: Command,
     cmd_interactive: Option<Command>,
-    sub_cmds: Vec<Subcommand<D>>,
+    sub_cmds: Vec<SubcommandEntry<D>>,
     matches: Option<ArgMatches>,
 }
 
@@ -109,15 +102,11 @@ impl<D: CmdData> SubcommandSet<D> {
     ///
     /// This includes the handler function which handles those
     /// invocations of the subcommand
-    pub fn new_subcommand<F: Fn(&mut D, &ArgMatches) -> Result<(), D::Error> + 'static>(
-        &mut self,
-        cmd: Command,
-        handler: F,
-    ) {
+    pub fn new_subcommand<H: Subcommand<D> + 'static>(&mut self, subcommand: H) {
+        let cmd = subcommand.create_subcommand();
         let name = cmd.get_name().into();
-        let handler = Box::new(handler);
-        let sub_cmd = Subcommand { name, handler };
-        self.sub_cmds.push(sub_cmd);
+        let handler = Box::new(subcommand);
+        self.sub_cmds.push(SubcommandEntry { name, handler });
         self.map_cmd(move |c| c.subcommand(cmd));
     }
 
@@ -132,7 +121,7 @@ impl<D: CmdData> SubcommandSet<D> {
         if let Some((name, submatches)) = matches.subcommand() {
             for s in self.sub_cmds.iter() {
                 if name == s.name {
-                    return (s.handler)(data, submatches);
+                    return s.handler.handle(data, submatches);
                 }
             }
         }

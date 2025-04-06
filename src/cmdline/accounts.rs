@@ -6,21 +6,12 @@ use crate::{Database, Error, FileFormat, FileType};
 
 //fp subcommand
 pub fn subcommand(sub_cmds: &mut SubcommandSet<Database>) {
-    let write_subcmd = Command::new("write")
-        .about("Write out the database")
-        .arg(
-            Arg::new("write_database")
-                .required(true)
-                .help("Filename to write the database to"),
-        )
-        .arg(
-            Arg::new("output_format")
-                .long("ofmt")
-                .help("Format of the database to write"),
-        );
+    let subcmd = Command::new("accounts")
+        .about("Operate on the accounts in the database")
     sub_cmds.new_subcommand(write_subcmd, handle_command)
 }
 
+//fp handle_command
 pub fn handle_command(db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
     let write_db = matches.get_one::<String>("write_database").unwrap();
     eprintln!("write_db : {write_db}");

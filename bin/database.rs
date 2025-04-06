@@ -9,7 +9,7 @@ pub fn main() {
         .version("0.1.0");
 
     let mut subcmds = cmdline::SubcommandSet::new(cmd);
-    cmdline::write::subcommand(&mut subcmds);
+    subcmds.new_subcommand(cmdline::write::Write::default());
     subcmds.make_interactive();
 
     subcmds.map_cmd(cmdline::database::add_args);
