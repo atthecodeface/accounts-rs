@@ -12,11 +12,11 @@ pub fn main() {
     cmdline::write::subcommand(&mut subcmds);
     subcmds.make_interactive();
 
-    subcmds.map_cmd(|cmd| cmdline::database::add_args(cmd));
+    subcmds.map_cmd(cmdline::database::add_args);
 
     let matches = subcmds.get_matches();
 
-    let result = cmdline::database::new(&matches);
+    let result = cmdline::database::new(matches);
     if let Err(e) = result {
         eprintln!("database : error: {e}");
         std::process::exit(4);

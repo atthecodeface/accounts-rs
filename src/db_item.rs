@@ -44,24 +44,29 @@ pub trait DbItemKind: Clone + Serialize + for<'a> Deserialize<'a> {
 #[macro_export]
 macro_rules! make_db_item {
     {$db_id: ident, $id:ident} => {
+
         #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
         pub struct $db_id {
             id : $crate :: DbId,
             inner: std::rc::Rc<std::cell::RefCell<$id>>
         }
+
         impl $db_id {
+            #[allow(dead_code)]
             fn inner(&self) -> std::cell::Ref<$id> {
                 self.inner.borrow()
             }
         }
+
         impl $crate :: DbItemKind for $db_id {
-            fn id(&self) -> crate :: DbId { self.id }
-            fn itype(&self) -> crate :: DbItemType {
-                crate :: DbItemType :: $id
+            fn id(&self) -> $crate :: DbId { self.id }
+            fn itype(&self) -> $crate :: DbItemType {
+                $crate :: DbItemType :: $id
             }
         }
-        impl From<(crate :: DbId, $id)> for $db_id {
-            fn from((id, inner): (crate :: DbId, $id)) -> Self {
+
+        impl From<($crate :: DbId, $id)> for $db_id {
+            fn from((id, inner): ($crate :: DbId, $id)) -> Self {
                 let inner = std::rc::Rc::new(std::cell::RefCell::new(inner));
                 Self { id, inner }
             }

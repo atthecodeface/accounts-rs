@@ -42,9 +42,9 @@ impl AccountDesc {
         let Some(captures) = re.captures(sc_str) else {
             return Err(Error::ParseAccount(format!("{sc_str}:{account}")));
         };
-        let sc0 = u32::from_str_radix(captures.get(1).unwrap().as_str(), 10);
-        let sc1 = u32::from_str_radix(captures.get(2).unwrap().as_str(), 10);
-        let sc2 = u32::from_str_radix(captures.get(3).unwrap().as_str(), 10);
+        let sc0 = captures.get(1).unwrap().as_str().parse::<u32>();
+        let sc1 = captures.get(2).unwrap().as_str().parse::<u32>();
+        let sc2 = captures.get(3).unwrap().as_str().parse::<u32>();
         if sc0.is_err() || sc1.is_err() || sc2.is_err() {
             Err(Error::ParseAccount(format!("{sc_str}:{account}")))
         } else {

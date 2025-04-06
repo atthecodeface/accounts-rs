@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+#![allow(clippy::module_inception)]
 #[macro_use]
 mod index;
 mod indexed_slice;

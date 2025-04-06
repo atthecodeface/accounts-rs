@@ -1,15 +1,24 @@
 //a Imports
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
-
 use crate::cmdline::CmdData;
 
 //a Subcommand
 //ti Subcommand
 /// A subcommand in a [SubcommandSet]
+pub trait CmdHandlerFn<D: CmdData>:
+    Fn(&mut D, &ArgMatches) -> Result<(), D::Error> + 'static
+{
+}
+
+impl<D: CmdData, T: Fn(&mut D, &ArgMatches) -> Result<(), D::Error> + 'static> CmdHandlerFn<D>
+    for T
+{
+}
+
 struct Subcommand<D: CmdData> {
     name: String,
-    handler: Box<dyn Fn(&mut D, &ArgMatches) -> Result<(), D::Error> + 'static>,
+    handler: Box<dyn CmdHandlerFn<D>>,
 }
 
 //ip Debug for Subcommand
@@ -174,11 +183,8 @@ impl<D: CmdData> SubcommandSet<D> {
                     }
                     Ok(matches) => {
                         self.matches = Some(matches);
-                        match self.handle_subcommand_matches(&mut data) {
-                            Err(e) => {
-                                eprintln!("Error: {e}");
-                            }
-                            _ => (),
+                        if let Err(e) = self.handle_subcommand_matches(&mut data) {
+                            eprintln!("Error: {e}");
                         }
                     }
                 }

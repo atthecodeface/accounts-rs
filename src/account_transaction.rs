@@ -22,7 +22,7 @@ pub enum AccTransactionType {
 impl AccTransactionType {
     //cp parse
     /// Parse a string into a transaction type
-    pub fn parse(s: &str, is_debit: bool) -> Result<Self, Error> {
+    pub fn parse(s: &str, _is_debit: bool) -> Result<Self, Error> {
         if s == "SO" {
             Ok(Self::StandingOrder)
         } else if s == "BGC" {

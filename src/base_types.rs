@@ -1,7 +1,6 @@
 //a Imports
 use serde::{Deserialize, Serialize};
 
-use crate::indexed_vec::StringsWithIndex;
 use crate::Error;
 
 //a FileType
@@ -55,22 +54,12 @@ impl std::str::FromStr for FileFormat {
     fn from_str(s: &str) -> Result<Self, Error> {
         if s == "array" {
             Ok(Self::Array)
-        } else if s == "dict" {
-            Ok(Self::Dictionary)
-        } else if s == "map" {
-            Ok(Self::Dictionary)
-        } else if s == "dictionary" {
+        } else if s == "dict" || s == "map" || s == "dictionary" {
             Ok(Self::Dictionary)
         } else {
             Err(Error::UnknownFileFormat(s.to_string()))
         }
     }
-}
-
-//a EntityTable
-#[derive(Debug)]
-pub struct EntityTable<'et> {
-    names: StringsWithIndex<'et>,
 }
 
 //a Entity

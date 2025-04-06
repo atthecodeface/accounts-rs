@@ -1,4 +1,5 @@
 //a Imports
+#![allow(dead_code)]
 use std::pin::Pin;
 
 use super::VecWithIndex;

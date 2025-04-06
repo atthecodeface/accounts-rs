@@ -1,4 +1,6 @@
 //a Documentation
+#![allow(dead_code)]
+
 //! The database consists of tables:
 //!
 //! * Transactions
@@ -27,10 +29,10 @@
 use serde::{Deserialize, Deserializer, Serializer};
 use std::collections::HashMap;
 
-use crate::{Account, DbAccounts};
-use crate::{DbId, DbItem, DbItemKind};
 use crate::DbRelatedParties;
 use crate::DbTransactions;
+use crate::{Account, DbAccounts};
+use crate::{DbId, DbItem};
 use crate::{Error, FileFormat};
 
 //a Database

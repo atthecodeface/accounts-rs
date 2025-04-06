@@ -22,7 +22,7 @@ pub enum TransactionType {
 impl TransactionType {
     //cp parse
     /// Parse a string into a transaction type
-    pub fn parse(s: &str, is_debit: bool) -> Result<Self, Error> {
+    pub fn parse(s: &str, _is_debit: bool) -> Result<Self, Error> {
         if s == "SO" {
             Ok(Self::StandingOrder)
         } else if s == "BGC" {
@@ -69,9 +69,13 @@ impl Transaction {
 //tp DbTransaction
 crate::make_db_item!(DbTransaction, Transaction);
 
+//tp DbTransactions
+#[derive(Default)]
 pub struct DbTransactions {}
+
+//ip DbTransactions
 impl DbTransactions {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
