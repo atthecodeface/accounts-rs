@@ -19,28 +19,32 @@ impl<'key, T> IndexKey<'key> for T where
 /// An [VecWithIndex] is an IndexedVec of items with an array index,
 /// and a dictionary mapping an index key to array indices
 ///
-/// Once an element is added to the VecWithIndex it cannot be mutated
-/// or removed; any array index returned by methods is valid for the
-/// lifetime of the VecWithIndex.
+/// Once an element is added to the VecWithIndex it cannot be removed;
+/// any array index returned by methods is valid for the lifetime of
+/// the VecWithIndex.
 ///
 /// The index is a mapping from key to an index to the internal array;
 /// references to entries can either be by using a reference to an
 /// index key, or by using an array index.
 ///
-/// It suports Deref into the array; it thus exposes 'keys' and
+/// It supports Deref into the array; it thus exposes 'keys' and
 /// 'contains' methods of the underlying HashMap explicitly.
-pub struct VecWithIndex<'vwi, K, I, D>
+///
+/// It support immutable indexing by the index type, to access the entry.
+///
+/// A 'mutable' VecWithIndex supports IndexMut into the array
+pub struct VecWithIndex<'vwi, K, I, D, const M: bool>
 where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,
 {
-    array: IndexedVec<I, D, false>,
+    array: IndexedVec<I, D, M>,
     index: HashMap<K, I>,
     phantom: PhantomData<&'vwi fn()>,
 }
 
-//ip Default for VecWithIndex<K, I, D>
-impl<'vwi, K, I, D> std::default::Default for VecWithIndex<'vwi, K, I, D>
+//ip Default for VecWithIndex<K, I, D, M>
+impl<'vwi, K, I, D, const M: bool> std::default::Default for VecWithIndex<'vwi, K, I, D, M>
 where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,
@@ -56,8 +60,8 @@ where
     }
 }
 
-//ip Debug for VecWithIndex<K, I, D>
-impl<'vwi, K, I, D> std::fmt::Debug for VecWithIndex<'vwi, K, I, D>
+//ip Debug for VecWithIndex<K, I, D, M>
+impl<'vwi, K, I, D, const M: bool> std::fmt::Debug for VecWithIndex<'vwi, K, I, D, M>
 where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,
@@ -79,7 +83,7 @@ where
 }
 
 //ip Index<ArrayIndex> for VecWithIndex
-impl<'vwi, K, I, D> std::ops::Index<I> for VecWithIndex<'vwi, K, I, D>
+impl<'vwi, K, I, D, const M: bool> std::ops::Index<I> for VecWithIndex<'vwi, K, I, D, M>
 where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,
@@ -90,8 +94,20 @@ where
     }
 }
 
+//ip IndexMut<ArrayIndex> for VecWithIndex
+impl<'vwi, K, I, D> std::ops::IndexMut<I> for VecWithIndex<'vwi, K, I, D, true>
+where
+    K: IndexKey<'vwi>,
+    I: Idx + 'vwi,
+{
+    fn index_mut(&mut self, n: I) -> &mut D {
+        &mut self.array[n]
+    }
+}
+
 //ip IntoIter for VecWithIndex
-impl<'iter, 'vwi, K, I, D> std::iter::IntoIterator for &'iter VecWithIndex<'vwi, K, I, D>
+impl<'iter, 'vwi, K, I, D, const M: bool> std::iter::IntoIterator
+    for &'iter VecWithIndex<'vwi, K, I, D, M>
 where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,
@@ -106,20 +122,20 @@ where
 }
 
 //ip Deref for VecWithIndex
-impl<'vwi, K, I, D> std::ops::Deref for VecWithIndex<'vwi, K, I, D>
+impl<'vwi, K, I, D, const M: bool> std::ops::Deref for VecWithIndex<'vwi, K, I, D, M>
 where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,
 {
-    type Target = IndexedVec<I, D, false>;
+    type Target = IndexedVec<I, D, M>;
     #[inline]
-    fn deref(&self) -> &IndexedVec<I, D, false> {
+    fn deref(&self) -> &IndexedVec<I, D, M> {
         &self.array
     }
 }
 
 //ip AsRef<[D]> for VecWithIndex
-impl<'vwi, K, I, D> AsRef<[D]> for VecWithIndex<'vwi, K, I, D>
+impl<'vwi, K, I, D, const M: bool> AsRef<[D]> for VecWithIndex<'vwi, K, I, D, M>
 where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,
@@ -131,7 +147,7 @@ where
 }
 
 //ip VecWithIndex
-impl<'vwi, K, I, D> VecWithIndex<'vwi, K, I, D>
+impl<'vwi, K, I, D, const M: bool> VecWithIndex<'vwi, K, I, D, M>
 where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,

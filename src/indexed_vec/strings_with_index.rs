@@ -12,7 +12,7 @@ make_index!(StringIndex, usize);
 //tp StringsWithIndex
 #[derive(Debug, Default)]
 pub struct StringsWithIndex<'swi> {
-    strings: VecWithIndex<'swi, &'swi str, StringIndex, Pin<String>>,
+    strings: VecWithIndex<'swi, &'swi str, StringIndex, Pin<String>, false>,
 }
 
 //ip Index<Name> for StringsWithIndex

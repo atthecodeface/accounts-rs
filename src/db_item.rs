@@ -45,10 +45,19 @@ pub trait DbItemKind: Clone + Serialize + for<'a> Deserialize<'a> {
 macro_rules! make_db_item {
     {$db_id: ident, $id:ident} => {
 
-        #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+        #[derive(Debug, Clone, Serialize, Deserialize)]
         pub struct $db_id {
             id : $crate :: DbId,
             inner: std::rc::Rc<std::cell::RefCell<$id>>
+        }
+
+        impl std::cmp::PartialEq for $db_id {
+            fn eq(&self, other:&$db_id) -> bool {
+                self.id == other.id
+            }
+        }
+
+        impl std::cmp::Eq for $db_id {
         }
 
         impl $db_id {

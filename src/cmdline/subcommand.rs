@@ -135,17 +135,6 @@ impl<D: CmdData> CommandSet<D> {
         self.map_cmd(move |c| c.subcommand(cmd));
     }
 
-    //mi handle_subcommand_matches
-    /// Handle the current matches for the command given that it has
-    /// (probably) a subcommand
-    ///
-    /// This matches the subcommands name with one from the set, and
-    /// invokes the handler on the data
-    fn handle_subcommand_matches(&mut self, data: &mut D) -> Result<(), D::Error> {
-        let matches = self.matches.as_ref().unwrap();
-        self.sub_cmds.handle_matches(data, matches)
-    }
-
     //mp handle_matches
     /// Handle the command matches from the command line, and run
     /// interactively if requested

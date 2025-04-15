@@ -39,6 +39,16 @@ where
     }
 }
 
+//ip IndexMut<Handle> for mutable IndexedVec
+impl<I, T> std::ops::IndexMut<I> for IndexedVec<I, T, true>
+where
+    I: Idx,
+{
+    fn index_mut(&mut self, idx: I) -> &mut T {
+        &mut self.array[idx.index()]
+    }
+}
+
 //ip IndexedVec (mutable and immutable)
 impl<I, T, const M: bool> IndexedVec<I, T, M>
 where

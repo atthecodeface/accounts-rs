@@ -164,6 +164,23 @@ where
         self.slice.contains(x)
     }
 
+    //ap binary_search_by
+    pub fn binary_search_by<'a, F>(&'a self, mut f: F) -> Result<usize, usize>
+    where
+        F: FnMut(&'a T) -> std::cmp::Ordering,
+    {
+        self.slice.binary_search_by(f)
+    }
+
+    //ap binary_search
+    #[inline(always)]
+    pub fn binary_search(&self, x: &T) -> Result<usize, usize>
+    where
+        T: Ord,
+    {
+        self.slice.binary_search(x)
+    }
+
     //ap position
     /// Searches for an element in an iterator, returning its index. This is
     /// equivalent to `Iterator::position`, but returns `I` and not `usize`.

@@ -23,6 +23,12 @@ macro_rules! make_index {
         }
         impl $id {
             #[allow(dead_code)]
+            #[track_caller]
+            pub fn decrement(self) -> Self {
+                assert!(self.0 != 0, "Decrement of index from 0 is illegal");
+                Self(self.0 - 1)
+            }
+            #[allow(dead_code)]
             pub fn increment(self) -> Self {
                 Self(self.0 + 1)
             }

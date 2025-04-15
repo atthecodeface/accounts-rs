@@ -71,7 +71,6 @@ impl TryFrom<CsvTransaction> for AccTransaction {
                 AccountDesc::default()
             }
         };
-        let related_party = None;
         Ok(AccTransaction {
             date,
             ttype,
@@ -80,7 +79,7 @@ impl TryFrom<CsvTransaction> for AccTransaction {
             debit,
             credit,
             balance,
-            related_party,
+            ..std::default::Default::default()
         })
     }
 }
