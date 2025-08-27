@@ -1,5 +1,6 @@
 //a Imports
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
+use std::collections::HashMap;
 
 use crate::Error;
 use crate::{AccountDesc, Amount, Date, DbId};
@@ -93,3 +94,59 @@ impl BankTransaction {
 
 //tp DbBankTransaction
 crate::make_db_item!(DbBankTransaction, BankTransaction);
+//a DbBankTransactions
+//tp DbBankTransactions
+/// All the related parties in the database
+#[derive(Debug, Default)]
+pub struct DbBankTransactions {
+    array: Vec<DbBankTransaction>,
+    index: HashMap<String, DbId>,
+}
+
+//ip DbBankTransactions
+impl DbBankTransactions {
+    //mp iter_db_id
+    pub fn iter_db_id(&self) -> impl Iterator<Item = DbId> + use<'_> {
+        self.array.iter().map(|m| m.id)
+    }
+
+    //mp add_transaction
+    pub fn add_transaction(&mut self, db_transaction: DbBankTransaction) -> bool {
+        if self.has_transaction(&db_transaction.inner().description) {
+            return false;
+        }
+        self.index.insert(
+            db_transaction.inner().description.clone(),
+            db_transaction.id,
+        );
+        self.array.push(db_transaction.clone());
+        true
+    }
+
+    //ap has_transaction
+    pub fn has_transaction(&self, description: &str) -> bool {
+        self.index.contains_key(description)
+    }
+
+    //ap get_transaction
+    pub fn get_transaction(&self, description: &str) -> Option<DbId> {
+        self.index.get(description).copied()
+    }
+
+    //zz All done
+}
+
+//ip Serialize for DbBankTransactions
+impl Serialize for DbBankTransactions {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeSeq;
+        let mut seq = serializer.serialize_seq(Some(self.array.len()))?;
+        for db_acc in self.array.iter() {
+            seq.serialize_element(&*db_acc.inner())?;
+        }
+        seq.end()
+    }
+}

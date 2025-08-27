@@ -27,8 +27,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::DbId;
-use crate::{Account, BankTransaction, DbAccTransaction, DbAccount, Member};
-use crate::{DbBankTransaction, DbMember, DbRelatedParty};
+use crate::{Account, BankTransaction, DbAccount, DbBankTransaction, Member};
+use crate::{DbMember, DbRelatedParty};
 
 //a DbItemKind
 //tt trait DbitemKind
@@ -98,7 +98,6 @@ macro_rules! make_db_item {
 pub enum DbItemType {
     Account,
     BankTransaction,
-    AccTransaction,
     RelatedParty,
     Member,
 }
@@ -110,7 +109,6 @@ pub enum DbItemTypeE {
     BankTransaction(DbBankTransaction),
     RelatedParty(DbRelatedParty),
     Member(DbMember),
-    AccTransaction(DbAccTransaction),
 }
 
 //a DbItem

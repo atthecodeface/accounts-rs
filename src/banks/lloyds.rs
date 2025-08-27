@@ -1,6 +1,6 @@
 // Transaction Date,Transaction Type,Sort Code,Account Number,Transaction Description,Debit Amount,Credit Amount,Balance
 // 28/08/2024,FPI,'30-91-74,02344812,NAME REASON,,20.00,12004.61
-use crate::{AccTransaction, AccTransactionType, AccountDesc, Amount, Date, Error};
+use crate::{AccountDesc, Amount, BankTransaction, BankTransactionType, Date, Error};
 
 //a CsvTransaction
 //tp CsvTransaction
@@ -33,10 +33,10 @@ pub struct CsvTransaction {
     balance: Option<String>,
 }
 
-//ip TryFrom<CsvTransaction> for AccTransaction
-impl TryFrom<CsvTransaction> for AccTransaction {
+//ip TryFrom<CsvTransaction> for BankTransaction
+impl TryFrom<CsvTransaction> for BankTransaction {
     type Error = Error;
-    fn try_from(csv: CsvTransaction) -> Result<AccTransaction, Error> {
+    fn try_from(csv: CsvTransaction) -> Result<BankTransaction, Error> {
         if csv.balance.is_none() {
             return Err(Error::ParseTransaction(format!(
                 "CSV transaction had no balance field value {csv:?}"
@@ -62,7 +62,7 @@ impl TryFrom<CsvTransaction> for AccTransaction {
         };
         let balance = balance.unwrap_or_default();
         let ttype: Option<&str> = csv.ttype.as_deref();
-        let ttype = AccTransactionType::parse(ttype.unwrap_or(""), !debit.is_zero())?;
+        let ttype = BankTransactionType::parse(ttype.unwrap_or(""), !debit.is_zero())?;
 
         let account_desc = {
             if !csv.sort_code.is_empty() {
@@ -71,7 +71,7 @@ impl TryFrom<CsvTransaction> for AccTransaction {
                 AccountDesc::default()
             }
         };
-        Ok(AccTransaction {
+        Ok(BankTransaction {
             date,
             ttype,
             account_desc,
@@ -86,10 +86,10 @@ impl TryFrom<CsvTransaction> for AccTransaction {
 
 //a Public functions
 //fp read_transactions_csv
-/// Read a CSV transactions file and return a Vec<AccTransaction>
+/// Read a CSV transactions file and return a Vec<BankTransaction>
 ///
 /// All the transactions must belong to the same AccountDesc
-pub fn read_transactions_csv<R: std::io::Read>(reader: R) -> Result<Vec<AccTransaction>, Error> {
+pub fn read_transactions_csv<R: std::io::Read>(reader: R) -> Result<Vec<BankTransaction>, Error> {
     let mut csv_reader = csv::ReaderBuilder::new()
         .has_headers(true)
         .quoting(false)
@@ -100,7 +100,7 @@ pub fn read_transactions_csv<R: std::io::Read>(reader: R) -> Result<Vec<AccTrans
         let transaction = record.try_into()?;
         result.push(transaction);
     }
-    let result: Vec<AccTransaction> = result.into_iter().rev().collect();
+    let result: Vec<BankTransaction> = result.into_iter().rev().collect();
     if result.len() > 1 {
         let mut balance = result[0].balance;
         for i in 1..result.len() {

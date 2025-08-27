@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::{Idx, VecWithIndex};
 use crate::make_index;
-use crate::{AccTransaction, AccountDesc, Database, Date, DbId, Ordering};
+use crate::{AccountDesc, BankTransaction, Database, Date, DbId, Ordering};
 
 //a OrderedTransactions
 make_index!(OTIndex, usize);
@@ -234,9 +234,9 @@ impl Account {
     pub fn add_transactions(
         &mut self,
         db: &Database,
-        transactions: Vec<AccTransaction>,
+        transactions: Vec<BankTransaction>,
         slack: usize,
-    ) -> Result<(), Vec<AccTransaction>> {
+    ) -> Result<(), Vec<BankTransaction>> {
         for t in transactions.iter() {
             if t.account_desc() != &self.desc {
                 return Err(transactions);

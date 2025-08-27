@@ -60,9 +60,7 @@ pub use account::{Account, DbAccount, DbAccounts};
 
 mod bank_transaction;
 pub use bank_transaction::{
-    BankTransaction,
-    BankTransactionType,
-    DbBankTransaction, //  DbBankTransactions,
+    BankTransaction, BankTransactionType, DbBankTransaction, DbBankTransactions,
 };
 
 // mod invoices;
