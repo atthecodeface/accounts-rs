@@ -58,12 +58,11 @@ pub use account_desc::AccountDesc;
 mod account;
 pub use account::{Account, DbAccount, DbAccounts};
 
-mod account_transaction;
-pub use account_transaction::{AccTransaction, AccTransactionType, DbAccTransaction};
-
 mod bank_transaction;
 pub use bank_transaction::{
-    BankTransaction, BankTransactionType, DbBankTransaction, DbBankTransactions,
+    BankTransaction,
+    BankTransactionType,
+    DbBankTransaction, //  DbBankTransactions,
 };
 
 // mod invoices;
