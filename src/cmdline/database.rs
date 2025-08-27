@@ -22,7 +22,7 @@ pub fn new(matches: &ArgMatches) -> Result<Database, Error> {
         .parse::<FileFormat>()?;
 
     let Some(read_db) = matches.get_one::<String>("database") else {
-        return Ok(Database::new());
+        return Ok(Database::default());
     };
 
     let ftype = FileType::from_filename(read_db)?;

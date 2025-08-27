@@ -44,6 +44,9 @@ pub use base_types::{Date, Entity, FileFormat, FileType, Ordering};
 mod amount;
 pub use amount::Amount;
 
+mod member;
+pub use member::{DbMember, DbMembers, Member};
+
 mod related_party;
 pub use related_party::{DbRelatedParties, DbRelatedParty, RelatedParty};
 

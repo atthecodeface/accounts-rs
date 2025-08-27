@@ -29,10 +29,9 @@
 use serde::{Deserialize, Deserializer, Serializer};
 use std::collections::HashMap;
 
-use crate::DbRelatedParties;
-use crate::DbTransactions;
 use crate::{Account, DbAccounts};
 use crate::{DbId, DbItem};
+use crate::{DbMembers, DbRelatedParties, DbTransactions};
 use crate::{Error, FileFormat};
 
 //a Database
@@ -60,6 +59,7 @@ use crate::{Error, FileFormat};
 /// A Database can be serialized and deserialized, and will provide
 /// other mechanisms for saving (such as export to MySql datatbase, or
 /// sqlite3)
+#[derive(Default)]
 pub struct Database {
     /// Next ID to hand out to an entity
     next_db_id: DbId,
@@ -70,6 +70,9 @@ pub struct Database {
     /// All of the accounts in the database
     accounts: DbAccounts,
 
+    /// All of the members in the database
+    members: DbMembers,
+
     /// All of the accounts in the database
     related_parties: DbRelatedParties,
 
@@ -77,31 +80,8 @@ pub struct Database {
     transactions: DbTransactions,
 }
 
-//tp Default for Database - an empty Database
-impl Default for Database {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 //ip Database
 impl Database {
-    //cp new
-    pub fn new() -> Self {
-        let next_db_id = DbId::default();
-        let items = HashMap::new();
-        let accounts = DbAccounts::new();
-        let related_parties = DbRelatedParties::new();
-        let transactions = DbTransactions::new();
-        Self {
-            next_db_id,
-            items,
-            accounts,
-            related_parties,
-            transactions,
-        }
-    }
-
     //ap accounts
     pub fn accounts(&self) -> &DbAccounts {
         &self.accounts
@@ -164,7 +144,7 @@ impl Database {
 impl std::convert::TryFrom<Vec<DbItem>> for Database {
     type Error = Error;
     fn try_from(array: Vec<DbItem>) -> Result<Database, Error> {
-        let mut d = Database::new();
+        let mut d = Database::default();
         let mut next_db_id = DbId::default();
         let mut old_to_new_id_map = HashMap::new();
         let mut new_to_old_id_map = HashMap::new();

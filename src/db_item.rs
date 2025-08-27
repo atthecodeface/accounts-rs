@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::DbId;
 use crate::{Account, DbAccTransaction, DbAccount};
-use crate::{DbRelatedParty, DbTransaction};
+use crate::{DbMember, DbRelatedParty, DbTransaction};
 
 //a DbItemKind
 //tt trait DbitemKind
@@ -100,6 +100,7 @@ pub enum DbItemType {
     Transaction,
     AccTransaction,
     RelatedParty,
+    Member,
 }
 
 //tp DbItemTypeE
@@ -108,6 +109,7 @@ pub enum DbItemTypeE {
     Account(DbAccount),
     Transaction(DbTransaction),
     RelatedParty(DbRelatedParty),
+    Member(DbMember),
     AccTransaction(DbAccTransaction),
 }
 

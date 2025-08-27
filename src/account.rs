@@ -242,13 +242,16 @@ impl Account {
                 return Err(transactions);
             }
         }
-        let start_date = t[0].date();
+        let start_date = transactions[0].date();
         // let end_date = t.last().unwrap().date();
         let sc = self.transactions.cursor_of_date(start_date, true);
         if sc.is_valid() {
             todo!();
         }
-        for t in transactions {}
+        for t in transactions {
+            // let t_id = db.add_transaction(t);
+            // self.transactions.add_id(&mut sc, t_id)
+        }
         Ok(())
     }
 }

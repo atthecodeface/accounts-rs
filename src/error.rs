@@ -32,4 +32,12 @@ pub enum Error {
     FileTypeNotSupported(FileType, &'static str),
     #[error("format {0} not supported for {1}")]
     FormatNotSupported(FileFormat, &'static str),
+    #[error("{0}")]
+    Msg(String),
+}
+
+impl From<String> for Error {
+    fn from(s: String) -> Self {
+        Error::Msg(s)
+    }
 }

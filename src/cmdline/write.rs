@@ -1,45 +1,38 @@
 //a Imports
-use clap::{Arg, ArgMatches, Command};
-
-use crate::cmdline::Subcommand;
+use crate::cmdline::CmdArgs;
 use crate::{Database, Error};
+use clap::{Arg, ArgMatches, Command};
+use thunderclap::CommandBuilder;
 
 //a Write
-#[derive(Default)]
-pub struct Write();
+fn write_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+    let mut w = vec![];
+    let mut s = serde_yaml::Serializer::new(&mut w);
+    cmd_args.db.serialize_as_array(&mut s)?;
+    let s = std::str::from_utf8(&w).unwrap();
 
-//ip Subcommand for Write
-impl Subcommand<Database> for Write {
-    //mp create_subcommand
-    fn create_subcommand(&mut self) -> Command {
-        Command::new("write")
-            .about("Write out the database")
-            .arg(
-                Arg::new("write_database")
-                    .required(true)
-                    .help("Filename to write the database to"),
-            )
-            .arg(
-                Arg::new("output_format")
-                    .long("ofmt")
-                    .help("Format of the database to write"),
-            )
-    }
+    // let w = vec![];
+    // let mut s = serde_json::Serializer::pretty(w);
+    // db.serialize_as_array(&mut s)?;
+    // let w = s.into_inner();
+    // let s = std::str::from_utf8(&w).unwrap();
+    eprintln!("{s}");
+    Ok("".into())
+}
 
-    //mp handle
-    fn handle(&mut self, db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
-        let write_db = matches.get_one::<String>("write_database").unwrap();
-        eprintln!("write_db : {write_db}");
-        let mut w = vec![];
-        let mut s = serde_yaml::Serializer::new(&mut w);
-        db.serialize_as_array(&mut s)?;
-        let s = std::str::from_utf8(&w).unwrap();
-        // let w = vec![];
-        // let mut s = serde_json::Serializer::pretty(w);
-        // db.serialize_as_array(&mut s)?;
-        // let w = s.into_inner();
-        // let s = std::str::from_utf8(&w).unwrap();
-        eprintln!("{s}");
-        Ok(())
-    }
+//a write command
+//fp write_cmd
+pub fn write_cmd() -> CommandBuilder<CmdArgs> {
+    let command = Command::new("write").about("Write out the database");
+
+    let mut build = CommandBuilder::with_handler(command, write_fn);
+    CmdArgs::arg_add_positional_string(
+        &mut build,
+        "output_filename",
+        "File to write the database out to",
+        Some(1), // Required, single positional argument
+        None,
+    );
+    CmdArgs::arg_add_write_format(&mut build);
+    build
 }
