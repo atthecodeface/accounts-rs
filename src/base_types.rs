@@ -101,16 +101,21 @@ pub struct Date {
     value: usize,
 }
 
+//ip Date
 impl Date {
+    //ap is_none
     pub fn is_none(&self) -> bool {
         self.value == 0
     }
+
     //mp as_ordering
     /// Return a usize that an be used to order (at least) 100
     /// transactions on a particular day
     pub fn as_ordering(&self) -> Ordering {
         Ordering::from_usize(self.value)
     }
+
+    //cp parse
     pub fn parse(s: &str, _us_dm: bool) -> Result<Self, Error> {
         if let Ok(date) = chrono::NaiveDate::parse_from_str(s, "%d/%m/%Y") {
             let timestamp = date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as usize;
@@ -118,5 +123,22 @@ impl Date {
         } else {
             Err(Error::ParseDate(s.into()))
         }
+    }
+    //ap dmy
+    pub fn dmy(&self) -> (u32, u32, i32) {
+        use chrono::Datelike;
+        let date_time =
+            chrono::DateTime::<chrono::Utc>::from_timestamp(self.value as i64, 0).unwrap();
+        let date = date_time.naive_utc().date();
+        (date.day(), date.month(), date.year())
+    }
+}
+
+//ip std::fmt::Display for Date
+impl std::fmt::Display for Date {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let date_time =
+            chrono::DateTime::<chrono::Utc>::from_timestamp(self.value as i64, 0).unwrap();
+        write!(fmt, "{}", date_time.format("%d/%m/%Y"),)
     }
 }

@@ -2,8 +2,8 @@
 use clap::Command;
 use thunderclap::CommandBuilder;
 
-use crate::cmdline::{CmdArgs, Subcommand, SubcommandSet};
-use crate::{Database, Error, Member};
+use crate::cmdline::CmdArgs;
+use crate::{Error, Member};
 
 //a Members
 fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
@@ -28,7 +28,7 @@ pub fn members_cmd() -> CommandBuilder<CmdArgs> {
     let command = Command::new("members").about("Operate on the members section of the database");
 
     let mut build = CommandBuilder::new(command);
-    let mut list =
+    let list =
         CommandBuilder::with_handler(Command::new("list").about("List all the members"), list_fn);
     let mut add = CommandBuilder::with_handler(Command::new("add").about("Add an member"), add_fn);
     CmdArgs::arg_add_option_string(&mut add, "name", None, "Member name", None);

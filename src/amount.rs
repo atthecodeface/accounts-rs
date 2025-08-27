@@ -71,6 +71,6 @@ impl std::str::FromStr for Amount {
 //ip Display for Amount
 impl std::fmt::Display for Amount {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        self.value.fmt(fmt)
+        write!(fmt, "{:.2}", (self.value as f64) / 100.0)
     }
 }

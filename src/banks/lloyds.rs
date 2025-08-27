@@ -71,16 +71,15 @@ impl TryFrom<CsvTransaction> for BankTransaction {
                 AccountDesc::default()
             }
         };
-        Ok(BankTransaction {
+        Ok(BankTransaction::new(
             date,
             ttype,
             account_desc,
-            description: csv.description,
+            csv.description,
             debit,
             credit,
             balance,
-            ..std::default::Default::default()
-        })
+        ))
     }
 }
 
@@ -102,18 +101,18 @@ pub fn read_transactions_csv<R: std::io::Read>(reader: R) -> Result<Vec<BankTran
     }
     let result: Vec<BankTransaction> = result.into_iter().rev().collect();
     if result.len() > 1 {
-        let mut balance = result[0].balance;
+        let mut balance = result[0].balance();
         for i in 1..result.len() {
-            if result[i].account_desc != result[0].account_desc {
+            if result[i].account_desc() != result[0].account_desc() {
                 return Err(Error::TransactionLog(format!(
                     "entry {} has different account description {} to the first entry {}",
                     i + 1,
-                    result[i].account_desc,
-                    result[0].account_desc
+                    result[i].account_desc(),
+                    result[0].account_desc()
                 )));
             }
             let new_balance = balance + result[i].balance_delta();
-            if new_balance != result[i].balance {
+            if new_balance != result[i].balance() {
                 return Err(Error::TransactionLog(format!("balance before entry {} was {balance} but after it was calculated to be {new_balance}", i+1)));
             }
             balance = new_balance;

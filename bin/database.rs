@@ -3,7 +3,6 @@ use clap::Command;
 use thunderclap::CommandBuilder;
 
 use rust_accounts::cmdline::CmdArgs;
-use rust_accounts::*;
 
 pub fn main() -> Result<(), rust_accounts::Error> {
     let command = Command::new("database")

@@ -2,8 +2,8 @@
 use clap::Command;
 use thunderclap::CommandBuilder;
 
-use crate::cmdline::{CmdArgs, Subcommand, SubcommandSet};
-use crate::{Database, Error};
+use crate::cmdline::CmdArgs;
+use crate::Error;
 
 //a Accounts
 //a Write
@@ -33,7 +33,7 @@ pub fn accounts_cmd() -> CommandBuilder<CmdArgs> {
     let command = Command::new("accounts").about("Operate on the accounts section of the database");
 
     let mut build = CommandBuilder::new(command);
-    let mut list =
+    let list =
         CommandBuilder::with_handler(Command::new("list").about("List all the accounts"), list_fn);
     let mut add = CommandBuilder::with_handler(Command::new("add").about("Add an account"), add_fn);
     CmdArgs::arg_add_option_string(&mut add, "bank", None, "Bank name", None);

@@ -165,7 +165,7 @@ where
     }
 
     //ap binary_search_by
-    pub fn binary_search_by<'a, F>(&'a self, mut f: F) -> Result<usize, usize>
+    pub fn binary_search_by<'a, F>(&'a self, f: F) -> Result<usize, usize>
     where
         F: FnMut(&'a T) -> std::cmp::Ordering,
     {

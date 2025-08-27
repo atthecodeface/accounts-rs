@@ -52,48 +52,97 @@ impl BankTransactionType {
 pub struct BankTransaction {
     /// Date
     ///
-    pub date: Date,
+    date: Date,
     /// Account order (usually Data + small offset)
     ///
     /// The ordering in which it is placed within the account
     ///
     /// If this is 'none' then the ordering is unknown
-    pub ordering: usize,
+    ordering: usize,
     /// CSV BankTransaction Type,
-    pub ttype: BankTransactionType,
+    ttype: BankTransactionType,
     /// Bank account description that the transaction belongs to
-    pub account_id: DbId,
+    account_id: DbId,
     /// Bank account description that the transaction belongs to
-    pub account_desc: AccountDesc,
+    account_desc: AccountDesc,
     /// Description; probably includes user etc
-    pub description: String,
+    description: String,
     /// Amount of a debit
-    pub debit: Amount,
+    debit: Amount,
     /// Amount of a credit
-    pub credit: Amount,
+    credit: Amount,
     /// Balance after the transaction
-    pub balance: Amount,
+    balance: Amount,
     /// Related party
     #[serde(default)]
-    pub related_party: Option<DbId>,
+    related_party: Option<DbId>,
 }
 
 //ip BankTransaction
 impl BankTransaction {
+    //cp new
+    pub fn new(
+        date: Date,
+        ttype: BankTransactionType,
+        account_desc: AccountDesc,
+        description: String,
+        debit: Amount,
+        credit: Amount,
+        balance: Amount,
+    ) -> Self {
+        Self {
+            date,
+            ttype,
+            account_desc,
+            description,
+            debit,
+            credit,
+            balance,
+            ordering: 0,
+            account_id: DbId::default(),
+            related_party: None,
+        }
+    }
+
+    //ap balance
+    pub fn balance(&self) -> Amount {
+        self.balance
+    }
+
+    //ap balance_delta
     pub fn balance_delta(&self) -> Amount {
         (self.credit.value() - self.debit.value()).into()
     }
 
+    //ap account_desc
     pub fn account_desc(&self) -> &AccountDesc {
         &self.account_desc
     }
+
+    //ap date
     pub fn date(&self) -> Date {
         self.date
+    }
+
+    //ap related_party
+    pub fn related_party(&self) -> Option<DbId> {
+        self.related_party
+    }
+
+    //ap description
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    //ap account_id
+    pub fn account_id(&self) -> DbId {
+        self.account_id
     }
 }
 
 //tp DbBankTransaction
 crate::make_db_item!(DbBankTransaction, BankTransaction);
+
 //a DbBankTransactions
 //tp DbBankTransactions
 /// All the related parties in the database

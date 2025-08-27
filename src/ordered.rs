@@ -1,12 +1,9 @@
 //a Imports
-use std::collections::BTreeMap;
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::{Idx, VecWithIndex};
 use crate::make_index;
-use crate::{AccountDesc, BankTransaction, Database, Date, DbId, Ordering};
+use crate::{Date, DbId};
 
 //a OTInde
 make_index!(OTIndex, usize);
@@ -19,7 +16,11 @@ pub struct OTCursor {
     idx: OTIndex,
     ofs: usize,
 }
+
+//ip OTCursor
 impl OTCursor {
+    //cp new
+    /// A new cursor into [OrderedTransactions]
     pub fn new(idx: OTIndex, ofs: usize) -> Self {
         Self {
             valid: true,
@@ -27,6 +28,9 @@ impl OTCursor {
             ofs,
         }
     }
+
+    //cp invalid
+    /// Create a new invalid cursor
     pub fn invalid() -> Self {
         Self {
             valid: false,
@@ -34,6 +38,9 @@ impl OTCursor {
             ofs: 0,
         }
     }
+
+    //ap is_valid
+    /// Return true if the cursor is valid
     pub fn is_valid(&self) -> bool {
         self.valid
     }
@@ -41,7 +48,11 @@ impl OTCursor {
 
 //a OrderedTransactions
 //tp OrderedTransactions
-/// All the transactions grouped by Date
+/// An ordering of DbItems, with a number per day
+///
+/// This maintains an array of `(Date, Vec<DbId>)`, with the Vec being
+/// the DbId for that date. The array is kept sorted by Date, so that
+/// all the transactions for a Date can be readily found.
 #[derive(Debug, Default)]
 pub struct OrderedTransactions {
     /// Array of transactions for each date
@@ -52,6 +63,7 @@ pub struct OrderedTransactions {
     transactions_by_date: VecWithIndex<'static, Date, OTIndex, (Date, Vec<DbId>), true>,
 }
 
+//ip OrderedTransactions
 impl OrderedTransactions {
     //mp cursor_prev
     pub fn cursor_prev(&self, cursor: &mut OTCursor) -> bool {

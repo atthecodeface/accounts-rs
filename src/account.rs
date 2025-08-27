@@ -1,13 +1,10 @@
 //a Imports
-use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::indexed_vec::{Idx, VecWithIndex};
-use crate::make_index;
 use crate::OrderedTransactions;
-use crate::{AccountDesc, BankTransaction, Database, Date, DbId, Ordering};
+use crate::{AccountDesc, BankTransaction, Database};
 
 //a Account
 //tp Account
@@ -67,13 +64,16 @@ impl Account {
         transactions: Vec<BankTransaction>,
         slack: usize,
     ) -> Result<(), Vec<BankTransaction>> {
+        if transactions.is_empty() {
+            return Ok(());
+        }
         for t in transactions.iter() {
             if t.account_desc() != &self.desc {
                 return Err(transactions);
             }
         }
         let start_date = transactions[0].date();
-        // let end_date = t.last().unwrap().date();
+        let end_date = transactions.last().unwrap().date();
         let sc = self.transactions.cursor_of_date(start_date, true);
         if sc.is_valid() {
             todo!();

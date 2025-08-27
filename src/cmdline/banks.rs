@@ -3,8 +3,8 @@ use clap::Command;
 use thunderclap::CommandBuilder;
 
 use crate::banks;
-use crate::cmdline::{CmdArgs, Subcommand, SubcommandSet};
-use crate::{Database, Error, Member};
+use crate::cmdline::CmdArgs;
+use crate::Error;
 
 //a Members
 fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
@@ -15,7 +15,7 @@ fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let acc_transactions = banks::lloyds::read_transactions_csv(csv_data.as_bytes())?;
 
     for a in acc_transactions {
-        eprintln!("{a:?}");
+        eprintln!("{}: {} : {}", a.date(), a.balance(), a.balance_delta());
     }
 
     Ok("".into())
