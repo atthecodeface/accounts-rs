@@ -3,9 +3,9 @@
 
 //! The database consists of tables:
 //!
-//! * Transactions
+//! * BankTransactions
 //!
-//!     All of the transactions for the bank accounts
+//!     All of the bank transactions for the bank accounts
 //!
 //! The database ultimately contains DbItems
 //!
@@ -30,8 +30,8 @@ use serde::{Deserialize, Deserializer, Serializer};
 use std::collections::HashMap;
 
 use crate::{Account, DbAccounts};
+use crate::{DbBankTransactions, DbMembers, DbRelatedParties, Member};
 use crate::{DbId, DbItem};
-use crate::{DbMembers, DbRelatedParties, DbTransactions, Member};
 use crate::{Error, FileFormat};
 
 //a Database
@@ -49,7 +49,7 @@ use crate::{Error, FileFormat};
 ///    account transaction is added, it is matched to a related party
 ///    by a best-estimate
 ///
-/// * DbTransactions, which are the centre of the database; these are
+/// * DbBankTransactions, which are the centre of the database; these are
 ///     expected (once reconcilable) to have a set of debits and a set
 ///     of credits that balance. They are somewhat free-form - they
 ///     could be for a particular event, a particular season or year,
@@ -77,7 +77,7 @@ pub struct Database {
     related_parties: DbRelatedParties,
 
     /// All of the transactions in the database
-    transactions: DbTransactions,
+    bank_transactions: DbBankTransactions,
 }
 
 //ip Database
@@ -183,7 +183,7 @@ impl std::convert::TryFrom<Vec<DbItem>> for Database {
         }
         d.next_db_id = next_db_id;
         // Run through all items - look for accounts, and rebuild the Accounts from the database
-        // Run through all items - look for transactions, and rebuild the Transactions from the database
+        // Run through all items - look for transactions, and rebuild the BankTransactions from the database
         // Run through all items - look for related parties, and rebuild the RelatedParties from the database
         Ok(d)
     }

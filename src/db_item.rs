@@ -1,7 +1,7 @@
 //a Documentation
 //! The database consists of tables:
 //!
-//! * Transactions
+//! * BankTransactions
 //!
 //!     All of the transactions for the bank accounts
 //!
@@ -9,7 +9,7 @@
 //!
 //!
 //! All DbItems have a unique DbId, are will be of a type such as
-//! Transaction, Entity, etc; they implement DbItemKind which provides
+//! BankTransaction, Entity, etc; they implement DbItemKind which provides
 //! access to their DbId and their type (which can be referenced as a DbItemType).
 //!
 //! The DbItems thus have a DbId, DbItemType, and DbItemTypeE.
@@ -27,8 +27,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::DbId;
-use crate::{Account, DbAccTransaction, DbAccount, Member};
-use crate::{DbMember, DbRelatedParty, DbTransaction};
+use crate::{Account, BankTransaction, DbAccTransaction, DbAccount, Member};
+use crate::{DbBankTransaction, DbMember, DbRelatedParty};
 
 //a DbItemKind
 //tt trait DbitemKind
@@ -97,7 +97,7 @@ macro_rules! make_db_item {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum DbItemType {
     Account,
-    Transaction,
+    BankTransaction,
     AccTransaction,
     RelatedParty,
     Member,
@@ -107,7 +107,7 @@ pub enum DbItemType {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DbItemTypeE {
     Account(DbAccount),
-    Transaction(DbTransaction),
+    BankTransaction(DbBankTransaction),
     RelatedParty(DbRelatedParty),
     Member(DbMember),
     AccTransaction(DbAccTransaction),
@@ -164,6 +164,17 @@ impl From<(DbId, Member)> for DbItem {
             id,
             itype: DbItemType::Member,
             value: DbItemTypeE::Member((id, member).into()),
+        }
+    }
+}
+
+//ip From<(DbId, BankTransaction)> for DbItem
+impl From<(DbId, BankTransaction)> for DbItem {
+    fn from((id, trans): (DbId, BankTransaction)) -> Self {
+        Self {
+            id,
+            itype: DbItemType::BankTransaction,
+            value: DbItemTypeE::BankTransaction((id, trans).into()),
         }
     }
 }
