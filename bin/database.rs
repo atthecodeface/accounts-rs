@@ -16,6 +16,9 @@ pub fn main() -> Result<(), rust_accounts::Error> {
     CmdArgs::arg_add_database(&mut build);
 
     build.add_subcommand(rust_accounts::cmdline::write_cmd());
+    build.add_subcommand(rust_accounts::cmdline::accounts_cmd());
+    build.add_subcommand(rust_accounts::cmdline::members_cmd());
+    build.add_subcommand(rust_accounts::cmdline::banks_cmd());
 
     let mut cmd_args = CmdArgs::default();
     let mut command = build.main(true, true);

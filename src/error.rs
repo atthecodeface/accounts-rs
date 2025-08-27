@@ -16,7 +16,7 @@ pub enum Error {
     ParseTransaction(String),
     #[error("failed to parse date {0}")]
     ParseDate(String),
-    #[error("failed to parse account {0}")]
+    #[error("failed to parse account {0}: expected xx-yy-zz:n")]
     ParseAccount(String),
     #[error("transaction log {0}")]
     TransactionLog(String),

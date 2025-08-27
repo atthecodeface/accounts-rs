@@ -1,83 +1,54 @@
 //a Imports
-use clap::{value_parser, Arg, ArgMatches, Command};
+use clap::Command;
+use thunderclap::CommandBuilder;
 
-use crate::cmdline::{Subcommand, SubcommandSet};
+use crate::cmdline::{CmdArgs, Subcommand, SubcommandSet};
 use crate::{Database, Error};
 
 //a Accounts
-#[derive(Default)]
-struct AccountsList();
-
-//ip Subcommand for AccountsList
-impl Subcommand<Database> for AccountsList {
-    //mp create_subcommand
-    fn create_subcommand(&mut self) -> Command {
-        Command::new("list").about("List the accounts")
+//a Write
+fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+    println!("Accounts:");
+    for k in cmd_args.db.accounts().descs() {
+        let account = cmd_args.db.accounts().get_account(k).unwrap().borrow();
+        println!("  {k} : {} - {}", account.org(), account.name());
     }
-
-    //mp handle
-    fn handle(&mut self, db: &mut Database, _matches: &ArgMatches) -> Result<(), Error> {
-        println!("Accounts:");
-        for k in db.accounts().descs() {
-            let account = db.accounts().get_account(k).unwrap().borrow();
-            println!("  {k} : {} - {}", account.org(), account.name());
-        }
-        Ok(())
-    }
+    Ok("".into())
 }
 
-#[derive(Default)]
-struct AccountsAdd();
+fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+    let bank = &cmd_args.string_args[0];
+    let name = &cmd_args.string_args[1];
+    let sort_code = &cmd_args.string_args[2];
+    let account_number = cmd_args.usize_args[0];
 
-//ip Subcommand for AccountsAdd
-impl Subcommand<Database> for AccountsAdd {
-    //mp create_subcommand
-    fn create_subcommand(&mut self) -> Command {
-        Command::new("add")
-            .about("Add an account")
-            .arg(
-                Arg::new("sort_code")
-                    .required(true)
-                    .help("Sort code (xx-xx-xx)"),
-            )
-            .arg(
-                Arg::new("account_number")
-                    .required(true)
-                    .value_parser(value_parser!(usize))
-                    .help("Account number"),
-            )
-            .arg(Arg::new("bank").required(true).help("Bank name"))
-            .arg(Arg::new("name").required(true).help("Account name"))
-    }
+    let desc = crate::AccountDesc::parse_uk(sort_code, account_number)?;
+    let account = crate::Account::new(bank.to_owned(), name.to_owned(), desc);
 
-    //mp handle
-    fn handle(&mut self, db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
-        let sort_code = matches.get_one::<String>("sort_code").unwrap();
-        let account_number = matches.get_one::<usize>("account_number").unwrap();
-        let bank = matches.get_one::<String>("bank").unwrap();
-        let name = matches.get_one::<String>("name").unwrap();
-        let desc = crate::AccountDesc::parse_uk(sort_code, *account_number)?;
-        let account = crate::Account::new(bank.to_owned(), name.to_owned(), desc);
-        db.add_account(account);
-        Ok(())
-    }
+    let db_id = cmd_args.db.add_account(account);
+    Ok(format!("DbId{db_id}"))
 }
 
-#[derive(Default)]
-pub struct Accounts(SubcommandSet<Database>);
+pub fn accounts_cmd() -> CommandBuilder<CmdArgs> {
+    let command = Command::new("accounts").about("Operate on the accounts section of the database");
 
-//ip Subcommand for Accounts
-impl Subcommand<Database> for Accounts {
-    //mp create_subcommand
-    fn create_subcommand(&mut self) -> Command {
-        Command::new("accounts")
-            .about("Perform operations on accounts")
-            .subcommand(self.0.new_subcommand(AccountsList::default()))
-            .subcommand(self.0.new_subcommand(AccountsAdd::default()))
-    }
+    let mut build = CommandBuilder::new(command);
+    let mut list =
+        CommandBuilder::with_handler(Command::new("list").about("List all the accounts"), list_fn);
+    let mut add = CommandBuilder::with_handler(Command::new("add").about("Add an account"), add_fn);
+    CmdArgs::arg_add_option_string(&mut add, "bank", None, "Bank name", None);
+    CmdArgs::arg_add_option_string(&mut add, "name", None, "Account name", None);
+    CmdArgs::arg_add_option_string(&mut add, "sort_code", None, "Sort code (xx-xx-xx)", None);
+    CmdArgs::arg_add_option_usize(
+        &mut add,
+        "account_number",
+        None,
+        "Account number - a positive integer",
+        None,
+    );
 
-    //mp handle
-    fn handle(&mut self, db: &mut Database, matches: &ArgMatches) -> Result<(), Error> {
-        self.0.handle_matches(db, matches)
-    }
+    build.add_subcommand(list);
+    build.add_subcommand(add);
+
+    build
 }

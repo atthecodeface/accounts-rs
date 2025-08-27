@@ -31,7 +31,7 @@ use std::collections::HashMap;
 
 use crate::{Account, DbAccounts};
 use crate::{DbId, DbItem};
-use crate::{DbMembers, DbRelatedParties, DbTransactions};
+use crate::{DbMembers, DbRelatedParties, DbTransactions, Member};
 use crate::{Error, FileFormat};
 
 //a Database
@@ -87,16 +87,39 @@ impl Database {
         &self.accounts
     }
 
-    //mp add_account
-    pub fn add_account(&mut self, account: Account) {
-        let db_id = self.next_db_id;
-        self.next_db_id.increment();
-        if self.items.contains_key(&db_id) {
-            return self.add_account(account);
+    //ap members
+    pub fn members(&self) -> &DbMembers {
+        &self.members
+    }
+
+    //mi assign_next_free_db_id
+    fn assign_next_free_db_id(&mut self) -> DbId {
+        loop {
+            let db_id = self.next_db_id;
+            self.next_db_id = self.next_db_id.increment();
+            if !self.items.contains_key(&db_id) {
+                return db_id;
+            }
         }
+    }
+    //mp add_member
+    pub fn add_member(&mut self, member: Member) -> DbId {
+        let db_id = self.assign_next_free_db_id();
+
+        let item: DbItem = (db_id, member).into();
+        self.items.insert(db_id, item.clone());
+        self.members.add_member(item.member().unwrap());
+        db_id
+    }
+
+    //mp add_account
+    pub fn add_account(&mut self, account: Account) -> DbId {
+        let db_id = self.assign_next_free_db_id();
+
         let item: DbItem = (db_id, account).into();
         self.items.insert(db_id, item.clone());
         self.accounts.add_account(item.account().unwrap());
+        db_id
     }
 
     //mp serialize_as_array

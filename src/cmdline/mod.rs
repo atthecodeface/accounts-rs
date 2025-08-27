@@ -21,19 +21,28 @@ impl CmdData for Database {
 pub mod database;
 
 mod accounts;
+mod banks;
+mod members;
 mod write;
-pub use accounts::Accounts;
+pub use accounts::accounts_cmd;
+pub use banks::banks_cmd;
+pub use members::members_cmd;
 pub use write::write_cmd;
 
 use thunderclap::{CommandArgs, CommandBuilder};
 
+//a CmdArgs
+//tp CmdArgs
 #[derive(Default)]
 pub struct CmdArgs {
     pub db: Database,
     pub verbose: bool,
     pub write_format: String,
-    pub write_args: Vec<String>,
+    pub string_args: Vec<String>,
+    pub usize_args: Vec<usize>,
 }
+
+//ip CommandArgs for CmdArgs {
 impl CommandArgs for CmdArgs {
     type Error = Error;
     type Value = String;
@@ -41,10 +50,11 @@ impl CommandArgs for CmdArgs {
         Ok("".into())
     }
     fn reset_args(&mut self) {
-        self.write_args.clear();
+        self.string_args.clear();
+        self.usize_args.clear();
     }
 }
-
+//ip CmdArgs
 impl CmdArgs {
     //mi set_verbose
     pub(crate) fn set_verbose(&mut self, verbose: bool) -> Result<(), Error> {
@@ -52,9 +62,15 @@ impl CmdArgs {
         Ok(())
     }
 
+    //mi push_usize_arg
+    fn push_usize_arg(&mut self, s: usize) -> Result<(), Error> {
+        self.usize_args.push(s);
+        Ok(())
+    }
+
     //mi push_string_arg
     fn push_string_arg(&mut self, s: &str) -> Result<(), Error> {
-        self.write_args.push(s.into());
+        self.string_args.push(s.into());
         Ok(())
     }
 
@@ -117,6 +133,50 @@ impl CmdArgs {
             None,
             help,
             (count, true),
+            default_value,
+            Self::push_string_arg,
+        );
+    }
+
+    //fp arg_add_option_usize
+    /// This is added as the *next* usize_arg in the Vec
+    ///
+    /// As such it is *required* or, optional, must have a *default* value
+    pub fn arg_add_option_usize(
+        builder: &mut CommandBuilder<Self>,
+        tag: &'static str,
+        short: Option<char>,
+        help: &'static str,
+        default_value: Option<&'static str>,
+    ) {
+        let required = default_value.is_none();
+        builder.add_arg_usize(
+            tag,
+            short,
+            help,
+            required,
+            default_value,
+            Self::push_usize_arg,
+        );
+    }
+
+    //fp arg_add_option_string
+    /// This is added as the *next* string_arg in the Vec
+    ///
+    /// As such it is *required* or, optional, must have a *default* value
+    pub fn arg_add_option_string(
+        builder: &mut CommandBuilder<Self>,
+        tag: &'static str,
+        short: Option<char>,
+        help: &'static str,
+        default_value: Option<&'static str>,
+    ) {
+        let required = default_value.is_none();
+        builder.add_arg_string(
+            tag,
+            short,
+            help,
+            required,
             default_value,
             Self::push_string_arg,
         );

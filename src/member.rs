@@ -1,7 +1,7 @@
 //a Imports
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::Date;
+use crate::{Date, DbId};
 
 //a Member
 //tp Member
@@ -22,6 +22,22 @@ impl Member {
             address: "".into(),
             last_gift_aid: None,
         }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn member_id(&self) -> usize {
+        self.member_id
+    }
+
+    pub fn address(&self) -> &str {
+        &self.address
+    }
+
+    pub fn last_gift_aid(&self) -> Option<&Date> {
+        self.last_gift_aid.as_ref()
     }
 }
 
@@ -49,6 +65,16 @@ impl DbMembers {
     pub fn new() -> Self {
         let array = vec![];
         Self { array }
+    }
+
+    //mp iter_db_id
+    pub fn iter_db_id(&self) -> impl Iterator<Item = DbId> + use<'_> {
+        self.array.iter().map(|m| m.id)
+    }
+
+    //mp iter_member_id
+    pub fn iter_member_id(&self) -> impl Iterator<Item = usize> + use<'_> {
+        self.array.iter().map(|m| m.inner().member_id)
     }
 
     //mp add_member

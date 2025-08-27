@@ -67,8 +67,7 @@ pub use transaction::{DbTransaction, DbTransactions, Transaction, TransactionTyp
 // mod invoices;
 // mod account_transactions;
 
-mod banks;
-pub use banks::lloyds;
+pub mod banks;
 
 mod db_id;
 pub use db_id::DbId;

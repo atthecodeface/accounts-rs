@@ -27,7 +27,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::DbId;
-use crate::{Account, DbAccTransaction, DbAccount};
+use crate::{Account, DbAccTransaction, DbAccount, Member};
 use crate::{DbMember, DbRelatedParty, DbTransaction};
 
 //a DbItemKind
@@ -137,6 +137,13 @@ impl DbItem {
             None
         }
     }
+    pub fn member(&self) -> Option<DbMember> {
+        if let DbItemTypeE::Member(member) = &self.value {
+            Some(member.clone())
+        } else {
+            None
+        }
+    }
 }
 
 //ip From<(DbId, Account)> for DbItem
@@ -146,6 +153,17 @@ impl From<(DbId, Account)> for DbItem {
             id,
             itype: DbItemType::Account,
             value: DbItemTypeE::Account((id, account).into()),
+        }
+    }
+}
+
+//ip From<(DbId, Member)> for DbItem
+impl From<(DbId, Member)> for DbItem {
+    fn from((id, member): (DbId, Member)) -> Self {
+        Self {
+            id,
+            itype: DbItemType::Member,
+            value: DbItemTypeE::Member((id, member).into()),
         }
     }
 }
