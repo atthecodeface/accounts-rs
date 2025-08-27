@@ -41,6 +41,9 @@ mod indexed_vec;
 mod base_types;
 pub use base_types::{Date, Entity, FileFormat, FileType, Ordering};
 
+mod ordered;
+pub use ordered::{OTCursor, OTIndex, OrderedTransactions};
+
 mod amount;
 pub use amount::Amount;
 
