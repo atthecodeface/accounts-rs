@@ -64,6 +64,8 @@ pub struct BankTransaction {
     /// Bank account description that the transaction belongs to
     account_id: DbId,
     /// Bank account description that the transaction belongs to
+    ///
+    /// Lose this
     account_desc: AccountDesc,
     /// Description; probably includes user etc
     description: String,

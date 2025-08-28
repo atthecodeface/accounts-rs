@@ -73,6 +73,14 @@ macro_rules! make_db_item {
             pub fn borrow_mut(&self) -> std::cell::RefMut<$id> {
                 self.inner.borrow_mut()
             }
+            #[allow(dead_code)]
+            pub fn inner_mut(&self) -> std::cell::RefMut<$id> {
+                self.inner.borrow_mut()
+            }
+            #[allow(dead_code)]
+            pub fn id(&self) -> $crate :: DbId {
+                self.id
+            }
         }
 
         impl $crate :: DbItemKind for $db_id {

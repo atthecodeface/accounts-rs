@@ -27,4 +27,4 @@
 
 //a DbId
 //tp DbId
-crate::make_index!(DbId, usize);
+crate::make_index!(DbId, usize, Some(usize::MAX));

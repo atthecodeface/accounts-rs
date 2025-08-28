@@ -11,6 +11,7 @@ pub struct Member {
     member_id: usize,
     address: String,
     last_gift_aid: Option<Date>,
+    account_descrs: Vec<String>,
 }
 
 //ip Member
@@ -21,6 +22,7 @@ impl Member {
             member_id,
             address: "".into(),
             last_gift_aid: None,
+            account_descrs: vec![],
         }
     }
 
@@ -34,6 +36,14 @@ impl Member {
 
     pub fn address(&self) -> &str {
         &self.address
+    }
+
+    pub fn add_account_descr<I: Into<String>>(&mut self, i: I) {
+        self.account_descrs.push(i.into());
+    }
+
+    pub fn account_descrs<'a>(&'a self) -> impl Iterator<Item = &'a str> {
+        self.account_descrs.iter().map(|a| a.as_str())
     }
 
     pub fn last_gift_aid(&self) -> Option<&Date> {

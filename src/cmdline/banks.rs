@@ -14,6 +14,17 @@ fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let csv_data = std::fs::read_to_string(filename)?;
     let acc_transactions = banks::lloyds::read_transactions_csv(csv_data.as_bytes())?;
 
+    let x = cmd_args
+        .db
+        .find_account_related_party("Some Other Nondescription");
+    eprintln!("{:?}", x);
+    let x = cmd_args
+        .db
+        .find_account_related_party("Some Other Description");
+    eprintln!("{:?}", x);
+    let x = cmd_args.db.find_account_related_party("No Description");
+    eprintln!("{:?}", x);
+
     for a in acc_transactions {
         eprintln!("{}: {} : {}", a.date(), a.balance(), a.balance_delta());
     }

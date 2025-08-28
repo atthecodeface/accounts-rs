@@ -29,7 +29,9 @@
 use serde::{Deserialize, Deserializer, Serializer};
 use std::collections::HashMap;
 
-use crate::{Account, DbAccounts};
+use crate::indexed_vec::Idx;
+
+use crate::{Account, DbAccounts, RelatedParties};
 use crate::{DbBankTransactions, DbMembers, DbRelatedParties, Member};
 use crate::{DbId, DbItem};
 use crate::{Error, FileFormat};
@@ -78,6 +80,9 @@ pub struct Database {
 
     /// All of the transactions in the database
     bank_transactions: DbBankTransactions,
+
+    /// Related parties caches
+    account_related_parties: RelatedParties,
 }
 
 //ip Database
@@ -120,6 +125,51 @@ impl Database {
         self.items.insert(db_id, item.clone());
         self.accounts.add_account(item.account().unwrap());
         db_id
+    }
+
+    //mp clear_related_parties
+    pub fn clear_related_parties(&mut self) {
+        self.account_related_parties = RelatedParties::new(6, 16, 4);
+    }
+
+    //mp find_account_related_party
+    pub fn find_account_related_party(&mut self, descr: &str) -> Option<DbId> {
+        if self.account_related_parties.is_none() {
+            self.clear_related_parties();
+        }
+        let Some(db_id) = self
+            .account_related_parties
+            .find_item_with_collisions(descr)
+        else {
+            eprintln!("find_account_related_party: None");
+            return None;
+        };
+        if !db_id.is_none() {
+            eprintln!("find_account_related_party: {db_id}");
+            return Some(db_id);
+        }
+        self.add_new_account_related_party_cache();
+        self.find_account_related_party(descr)
+    }
+
+    //mp add_new_account_related_party_cache
+    pub fn add_new_account_related_party_cache(&mut self) {
+        let db_ids = self.items.keys().copied();
+        let descr_of_db = |id, f: &mut (dyn for<'a> FnMut(DbId, &'a str) -> ())| {
+            let db_item = self.items.get(&id).unwrap();
+            if let Some(d) = db_item.member() {
+                for s in d.inner().account_descrs() {
+                    f(id, s);
+                }
+            }
+        };
+        if self
+            .account_related_parties
+            .add_new_cache(db_ids, descr_of_db)
+            .is_err()
+        {
+            panic!("Descriptions are not enough");
+        }
     }
 
     //mp serialize_as_array

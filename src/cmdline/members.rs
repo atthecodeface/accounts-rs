@@ -11,6 +11,9 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     for k in cmd_args.db.members().iter_member_id() {
         let member = cmd_args.db.members().get_member_id(k).unwrap().borrow();
         println!("  {k} : {} - {}", member.member_id(), member.name());
+        for d in member.account_descrs() {
+            println!("      {d}");
+        }
     }
     Ok("".into())
 }
@@ -22,6 +25,19 @@ fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let member = Member::new(name.into(), member_id);
     let db_id = cmd_args.db.add_member(member);
     Ok(format!("DbId{db_id}"))
+}
+
+fn add_account_descr_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+    let name = &cmd_args.string_args[0];
+    let account_descr = &cmd_args.string_args[1];
+
+    if let Some(db_m) = cmd_args.db.members().get_member(name) {
+        let db_id = db_m.id();
+        db_m.inner_mut().add_account_descr(account_descr);
+        Ok(format!("DbId{db_id}"))
+    } else {
+        Err(format!("Did not find member '{}'", name).into())
+    }
 }
 
 pub fn members_cmd() -> CommandBuilder<CmdArgs> {
@@ -39,9 +55,22 @@ pub fn members_cmd() -> CommandBuilder<CmdArgs> {
         "Member number - a positive integer",
         None,
     );
+    let mut add_account_desc = CommandBuilder::with_handler(
+        Command::new("add_account_desc").about("Add and account descriptor for a member"),
+        add_account_descr_fn,
+    );
+    CmdArgs::arg_add_option_string(&mut add_account_desc, "name", None, "Member name", None);
+    CmdArgs::arg_add_option_string(
+        &mut add_account_desc,
+        "description",
+        None,
+        "Account description",
+        None,
+    );
 
     build.add_subcommand(list);
     build.add_subcommand(add);
+    build.add_subcommand(add_account_desc);
 
     build
 }
