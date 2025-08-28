@@ -3,8 +3,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::OrderedTransactions;
-use crate::{AccountDesc, BankTransaction, Database};
+use crate::{AccountDesc, BankTransaction, Database, DbId, OrderedTransactions};
 
 //a Account
 //tp Account
@@ -20,7 +19,7 @@ pub struct Account {
     org: String,
     name: String,
     desc: AccountDesc,
-    transactions: OrderedTransactions,
+    transactions: OrderedTransactions<DbId>,
 }
 
 //ip Account

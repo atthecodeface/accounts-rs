@@ -5,7 +5,13 @@ use crate::indexed_vec::{Idx, VecWithIndex};
 use crate::make_index;
 use crate::{Date, DbId};
 
-//a OTInde
+//a OrderedTransactionId
+//tt OrderedTransactionId
+pub trait OrderedTransactionId: std::default::Default + Copy + std::fmt::Debug {}
+
+impl<I: Idx + Default> OrderedTransactionId for I {}
+
+//a OTIndex
 make_index!(OTIndex, usize);
 
 //a OTCursor
@@ -48,23 +54,29 @@ impl OTCursor {
 
 //a OrderedTransactions
 //tp OrderedTransactions
-/// An ordering of DbItems, with a number per day
+/// An ordering of T - which may be DbId, for example - with a number per day
 ///
-/// This maintains an array of `(Date, Vec<DbId>)`, with the Vec being
+/// This maintains an array of `(Date, Vec<T>)`, with the Vec being
 /// the DbId for that date. The array is kept sorted by Date, so that
 /// all the transactions for a Date can be readily found.
 #[derive(Debug, Default)]
-pub struct OrderedTransactions {
+pub struct OrderedTransactions<T>
+where
+    T: OrderedTransactionId,
+{
     /// Array of transactions for each date
     ///
     /// transactions_by_date.find_key(&Data) -> OTIndex
     ///
     /// transactions_by_date[OTIndex] -> (Date, Vec<DbId>) (with at least one item)
-    transactions_by_date: VecWithIndex<'static, Date, OTIndex, (Date, Vec<DbId>), true>,
+    transactions_by_date: VecWithIndex<'static, Date, OTIndex, (Date, Vec<T>), true>,
 }
 
 //ip OrderedTransactions
-impl OrderedTransactions {
+impl<T> OrderedTransactions<T>
+where
+    T: OrderedTransactionId,
+{
     //mp cursor_prev
     pub fn cursor_prev(&self, cursor: &mut OTCursor) -> bool {
         if cursor.valid {
@@ -111,7 +123,7 @@ impl OrderedTransactions {
     }
 
     //mp cursor_id
-    pub fn cursor_id(&self, cursor: &OTCursor) -> Option<DbId> {
+    pub fn cursor_id(&self, cursor: &OTCursor) -> Option<T> {
         if cursor.valid {
             Some(self.transactions_by_date[cursor.idx].1[cursor.ofs])
         } else {
@@ -161,7 +173,10 @@ impl OrderedTransactions {
 }
 
 //ip Serialize for OrderedTransactions
-impl Serialize for OrderedTransactions {
+impl<T> Serialize for OrderedTransactions<T>
+where
+    T: OrderedTransactionId + Serialize,
+{
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
     where
         S: Serializer,
@@ -178,18 +193,21 @@ impl Serialize for OrderedTransactions {
 }
 
 //ip Deserialize for OrderedTransactions
-impl<'de> Deserialize<'de> for OrderedTransactions {
+impl<'de, T> Deserialize<'de> for OrderedTransactions<T>
+where
+    T: OrderedTransactionId + Deserialize<'de>,
+{
     fn deserialize<DE>(deserializer: DE) -> Result<Self, DE::Error>
     where
         DE: serde::Deserializer<'de>,
     {
         let mut ot = Self::default();
-        let v = Vec::<(Date, DbId)>::deserialize(deserializer)?;
-        for (date, db_id) in v {
+        let v = Vec::<(Date, T)>::deserialize(deserializer)?;
+        for (date, t) in v {
             let (_, idx) = ot
                 .transactions_by_date
                 .find_or_add(date, |_| (date, vec![]));
-            ot.transactions_by_date[idx].1.push(db_id);
+            ot.transactions_by_date[idx].1.push(t);
         }
         Ok(ot)
     }
