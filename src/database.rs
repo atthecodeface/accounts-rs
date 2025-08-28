@@ -178,11 +178,11 @@ impl Database {
             .borrow_mut()
             .find_item_with_collisions(descr)
         else {
-            eprintln!("find_account_related_party: None");
+            // eprintln!("find_account_related_party: None");
             return DbId::none();
         };
         if !db_id.is_none() {
-            eprintln!("find_account_related_party: {db_id}");
+            // eprintln!("find_account_related_party: {db_id}");
             return db_id;
         }
         self.add_new_account_related_party_cache();
