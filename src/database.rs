@@ -27,12 +27,13 @@
 
 //a Imports
 use serde::{Deserialize, Deserializer, Serializer};
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::indexed_vec::Idx;
 
 use crate::{Account, DbAccounts, RelatedParties};
-use crate::{DbBankTransactions, DbMembers, DbRelatedParties, Member};
+use crate::{BankTransaction, DbBankTransactions, DbMembers, DbRelatedParties, Member};
 use crate::{DbId, DbItem};
 use crate::{Error, FileFormat};
 
@@ -62,12 +63,33 @@ use crate::{Error, FileFormat};
 /// other mechanisms for saving (such as export to MySql datatbase, or
 /// sqlite3)
 #[derive(Default)]
-pub struct Database {
+pub struct DatabaseState {
     /// Next ID to hand out to an entity
     next_db_id: DbId,
 
     /// Hash map from DbId to the individual items
     items: HashMap<DbId, DbItem>,
+}
+impl DatabaseState {
+    //mi assign_next_free_db_id
+    fn assign_next_free_db_id(&mut self) -> DbId {
+        loop {
+            let db_id = self.next_db_id;
+            self.next_db_id = self.next_db_id.increment();
+            if db_id.is_none() {
+                continue;
+            }
+            if self.items.contains_key(&db_id) {
+                continue;
+            }
+            return db_id;
+        }
+    }
+}
+#[derive(Default)]
+pub struct Database {
+    /// next_db_id and the items
+    state: RefCell<DatabaseState>,
 
     /// All of the accounts in the database
     accounts: DbAccounts,
@@ -82,7 +104,7 @@ pub struct Database {
     bank_transactions: DbBankTransactions,
 
     /// Related parties caches
-    account_related_parties: RelatedParties,
+    account_related_parties: RefCell<RelatedParties>,
 }
 
 //ip Database
@@ -97,66 +119,83 @@ impl Database {
         &self.members
     }
 
-    //mi assign_next_free_db_id
-    fn assign_next_free_db_id(&mut self) -> DbId {
-        loop {
-            let db_id = self.next_db_id;
-            self.next_db_id = self.next_db_id.increment();
-            if !self.items.contains_key(&db_id) {
-                return db_id;
-            }
-        }
+    //ap bank_transactions
+    pub fn bank_transactions(&self) -> &DbBankTransactions {
+        &self.bank_transactions
     }
-    //mp add_member
-    pub fn add_member(&mut self, member: Member) -> DbId {
-        let db_id = self.assign_next_free_db_id();
 
-        let item: DbItem = (db_id, member).into();
-        self.items.insert(db_id, item.clone());
+    //mp get
+    pub fn get(&self, id: DbId) -> Option<DbItem> {
+        self.state.borrow().items.get(&id).cloned()
+    }
+
+    //mi add_item
+    fn add_item<I>(&self, item: I) -> (DbId, DbItem)
+    where
+        DbItem: From<(DbId, I)>,
+    {
+        let mut state = self.state.borrow_mut();
+        let db_id = state.assign_next_free_db_id();
+        let item = DbItem::from((db_id, item));
+        state.items.insert(db_id, item.clone());
+        (db_id, item)
+    }
+
+    //mp add_member
+    pub fn add_member(&self, member: Member) -> DbId {
+        let (db_id, item) = self.add_item(member);
         self.members.add_member(item.member().unwrap());
         db_id
     }
 
     //mp add_account
-    pub fn add_account(&mut self, account: Account) -> DbId {
-        let db_id = self.assign_next_free_db_id();
-
-        let item: DbItem = (db_id, account).into();
-        self.items.insert(db_id, item.clone());
+    pub fn add_account(&self, account: Account) -> DbId {
+        let (db_id, item) = self.add_item(account);
         self.accounts.add_account(item.account().unwrap());
         db_id
     }
 
+    //mp add_bank_transaction
+    pub fn add_bank_transaction(&self, bank_transaction: BankTransaction) -> DbId {
+        let (db_id, item) = self.add_item(bank_transaction);
+        self.bank_transactions
+            .add_transaction(item.bank_transaction().unwrap());
+        db_id
+    }
+
     //mp clear_related_parties
-    pub fn clear_related_parties(&mut self) {
-        self.account_related_parties = RelatedParties::new(6, 16, 4);
+    pub fn clear_related_parties(&self) {
+        *self.account_related_parties.borrow_mut() = RelatedParties::new(6, 16, 4);
     }
 
     //mp find_account_related_party
-    pub fn find_account_related_party(&mut self, descr: &str) -> Option<DbId> {
-        if self.account_related_parties.is_none() {
+    pub fn find_account_related_party(&self, descr: &str) -> DbId {
+        if self.account_related_parties.borrow().is_none() {
             self.clear_related_parties();
         }
         let Some(db_id) = self
             .account_related_parties
+            .borrow_mut()
             .find_item_with_collisions(descr)
         else {
             eprintln!("find_account_related_party: None");
-            return None;
+            return DbId::none();
         };
         if !db_id.is_none() {
             eprintln!("find_account_related_party: {db_id}");
-            return Some(db_id);
+            return db_id;
         }
         self.add_new_account_related_party_cache();
         self.find_account_related_party(descr)
     }
 
     //mp add_new_account_related_party_cache
-    pub fn add_new_account_related_party_cache(&mut self) {
-        let db_ids = self.items.keys().copied();
+    pub fn add_new_account_related_party_cache(&self) {
         let descr_of_db = |id, f: &mut (dyn for<'a> FnMut(DbId, &'a str) -> ())| {
-            let db_item = self.items.get(&id).unwrap();
+            let state = self.state.borrow();
+            let Some(db_item) = state.items.get(&id) else {
+                panic!("Bug - ids should all exist");
+            };
             if let Some(d) = db_item.member() {
                 for s in d.inner().account_descrs() {
                     f(id, s);
@@ -165,7 +204,8 @@ impl Database {
         };
         if self
             .account_related_parties
-            .add_new_cache(db_ids, descr_of_db)
+            .borrow_mut()
+            .add_new_cache(self.state.borrow().items.keys().copied(), descr_of_db)
             .is_err()
         {
             panic!("Descriptions are not enough");
@@ -181,10 +221,12 @@ impl Database {
         S: Serializer,
     {
         use serde::ser::SerializeSeq;
-        let len = self.items.len();
+        let mut sorted_ids: Vec<DbId> = self.state.borrow().items.keys().cloned().collect();
+        sorted_ids.sort();
+        let len = sorted_ids.len();
         let mut seq = serializer.serialize_seq(Some(len))?;
-        for i in self.items.values() {
-            seq.serialize_element(i)?;
+        for i in sorted_ids.into_iter() {
+            seq.serialize_element(&self.state.borrow().items[&i])?;
         }
         seq.end()
     }
@@ -217,8 +259,10 @@ impl Database {
 impl std::convert::TryFrom<Vec<DbItem>> for Database {
     type Error = Error;
     fn try_from(array: Vec<DbItem>) -> Result<Database, Error> {
-        let mut d = Database::default();
+        let mut db = Database::default();
+        let mut state = DatabaseState::default();
         let mut next_db_id = DbId::default();
+        next_db_id = state.assign_next_free_db_id();
         let mut old_to_new_id_map = HashMap::new();
         let mut new_to_old_id_map = HashMap::new();
         for item in array {
@@ -226,15 +270,15 @@ impl std::convert::TryFrom<Vec<DbItem>> for Database {
             if old_to_new_id_map.contains_key(&old_id) {
                 return Err(Error::DuplicateItemId(old_id));
             }
-            d.items.insert(next_db_id, item);
+            state.items.insert(next_db_id, item);
             old_to_new_id_map.insert(old_id, next_db_id);
             new_to_old_id_map.insert(next_db_id, old_id);
-            next_db_id = next_db_id.increment();
+            next_db_id = state.assign_next_free_db_id();
         }
-        d.next_db_id = next_db_id;
+        db.state = state.into();
         // Run through all items - look for accounts, and rebuild the Accounts from the database
         // Run through all items - look for transactions, and rebuild the BankTransactions from the database
         // Run through all items - look for related parties, and rebuild the RelatedParties from the database
-        Ok(d)
+        Ok(db)
     }
 }

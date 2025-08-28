@@ -4,12 +4,15 @@ use serde::{Deserialize, Serialize};
 use crate::Error;
 
 //a FileType
+//tp FileType
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
     Csv,
     Json,
     Yaml,
 }
+
+//ip Display for FileType
 impl std::fmt::Display for FileType {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
@@ -19,6 +22,8 @@ impl std::fmt::Display for FileType {
         }
     }
 }
+
+//ip FileType
 impl FileType {
     pub fn from_filename(f: &str) -> Result<Self, Error> {
         if f.ends_with(".yaml") {

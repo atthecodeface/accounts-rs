@@ -1,8 +1,10 @@
 //a Imports
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
+use crate::indexed_vec::Idx;
 use crate::{AccountDesc, BankTransaction, Database, DbId, OrderedTransactions};
 
 //a Account
@@ -40,28 +42,54 @@ impl Account {
         &self.name
     }
 
+    //mp add_bank_transaction
+    /// Add transaction unless it is a duplicate
+    pub fn add_bank_transaction(
+        &mut self,
+        db: &Database,
+        account_id: DbId,
+        mut bt: BankTransaction,
+    ) -> Result<(), BankTransaction> {
+        // if db.bank_transactions().has_transaction(bt.description()) {
+        // return Err(bt);
+        // }
+        if bt.related_party().is_none() {
+            bt.set_related_party(db.find_account_related_party(bt.description()));
+        }
+        bt.set_account_id(account_id);
+
+        let date = bt.date();
+        if self.transactions.contains_date(date) {
+            let (is_accurate, ot_index) = self.transactions.cursor_of_date(date, true);
+        }
+        let db_id = db.add_bank_transaction(bt);
+        let db_bank_transaction = db.get(db_id).unwrap().bank_transaction().unwrap();
+        let added = db
+            .bank_transactions()
+            .add_transaction(db_bank_transaction.clone());
+        if !added {
+            panic!(
+                "Could not add DbBankTransaction {} to DbAccount",
+                db_bank_transaction.inner().description()
+            );
+        }
+        Ok(())
+    }
+
     //mp add_transactions
     /// Add a Vec of transactions to the account
     ///
-    /// The transactions must be contiguous as far as the bank is
-    /// concerned - that is the balances before and after must match
-    /// the debits/credits; they must all be for the same AccountDesc
-    ///
-    /// For each transaction:
-    ///
-    /// * Verify that it is for this AccountDesc
-    ///
-    /// * Check to see if is is a duplicate
-    ///
-    /// * Find the insertion point
+    /// Any transactions for the same date should be in the correct
+    /// order, and should be able to be appended to those from the
+    /// same date already in the account
     ///
     /// Return a Vec for the transactions *not* added (in the same
     /// order that they arrived)
     pub fn add_transactions(
         &mut self,
         db: &Database,
+        account_id: DbId,
         transactions: Vec<BankTransaction>,
-        slack: usize,
     ) -> Result<(), Vec<BankTransaction>> {
         if transactions.is_empty() {
             return Ok(());
@@ -71,17 +99,20 @@ impl Account {
                 return Err(transactions);
             }
         }
-        let start_date = transactions[0].date();
-        let end_date = transactions.last().unwrap().date();
-        let sc = self.transactions.cursor_of_date(start_date, true);
-        if sc.is_valid() {
-            todo!();
+        let mut errors = vec![];
+        for t in transactions.into_iter() {
+            match self.add_bank_transaction(db, account_id, t) {
+                Err(e) => {
+                    errors.push(e);
+                }
+                _ => (),
+            }
         }
-        for t in transactions {
-            // let t_id = db.add_transaction(t);
-            // self.transactions.add_id(&mut sc, t_id)
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
-        Ok(())
     }
 }
 
@@ -89,55 +120,61 @@ impl Account {
 crate::make_db_item!(DbAccount, Account);
 
 //a DbAccounts
+//ti DbAccountsState
+/// The actual DbAccounts state
+#[derive(Debug)]
+struct DbAccountsState {
+    array: Vec<DbAccount>,
+    map: HashMap<AccountDesc, DbAccount>,
+}
+
 //tp DbAccounts
 /// A dictionary of AccountDesc -> DbAccount
 ///
 /// This serializes as an array of DBAccount, as the accounts themselves include their AccountDesc
 #[derive(Debug)]
 pub struct DbAccounts {
-    array: Vec<DbAccount>,
-    map: HashMap<AccountDesc, DbAccount>,
+    state: RefCell<DbAccountsState>,
 }
 
 //ip Default for DbAccounts
 impl Default for DbAccounts {
     fn default() -> Self {
-        Self::new()
+        let array = vec![];
+        let map = HashMap::new();
+        let state = (DbAccountsState { array, map }).into();
+        Self { state }
     }
 }
 
 //ip DbAccounts
 impl DbAccounts {
-    //cp new
-    pub fn new() -> Self {
-        let array = vec![];
-        let map = HashMap::new();
-        Self { array, map }
-    }
-
-    //mp descs
-    pub fn descs(&self) -> impl std::iter::Iterator<Item = &AccountDesc> {
-        self.map.keys()
+    //mp ids
+    pub fn ids(&self) -> Vec<DbId> {
+        self.state.borrow().array.iter().map(|db| db.id()).collect()
     }
 
     //mp add_account
-    pub fn add_account(&mut self, db_account: DbAccount) -> bool {
+    pub fn add_account(&self, db_account: DbAccount) -> bool {
         if self.has_account(&db_account.inner().desc) {
             return false;
         }
-        self.array.push(db_account.clone());
-        self.map.insert(db_account.inner().desc, db_account.clone());
+        let mut state = self.state.borrow_mut();
+        state.array.push(db_account.clone());
+        state
+            .map
+            .insert(db_account.inner().desc, db_account.clone());
         true
     }
 
     //ap has_account
     pub fn has_account(&self, desc: &AccountDesc) -> bool {
-        self.map.contains_key(desc)
+        self.state.borrow().map.contains_key(desc)
     }
 
     //ap get_account
-    pub fn get_account(&self, desc: &AccountDesc) -> Option<&DbAccount> {
-        self.map.get(desc)
+    pub fn get_account(&self, desc: &AccountDesc) -> Option<DbAccount> {
+        self.state.borrow().map.get(desc).cloned()
     }
 
     //zz All done
@@ -150,8 +187,9 @@ impl Serialize for DbAccounts {
         S: Serializer,
     {
         use serde::ser::SerializeSeq;
-        let mut seq = serializer.serialize_seq(Some(self.array.len()))?;
-        for db_acc in self.array.iter() {
+        let state = self.state.borrow();
+        let mut seq = serializer.serialize_seq(Some(state.array.len()))?;
+        for db_acc in state.array.iter() {
             seq.serialize_element(&*db_acc.inner())?;
         }
         seq.end()

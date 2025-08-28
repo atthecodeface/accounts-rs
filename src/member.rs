@@ -1,6 +1,10 @@
 //a Imports
+use std::cell::RefCell;
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize, Serializer};
 
+use crate::indexed_vec::Idx;
 use crate::{Date, DbId};
 
 //a Member
@@ -12,6 +16,7 @@ pub struct Member {
     address: String,
     last_gift_aid: Option<Date>,
     account_descrs: Vec<String>,
+    aliases: Vec<String>,
 }
 
 //ip Member
@@ -21,6 +26,7 @@ impl Member {
             name,
             member_id,
             address: "".into(),
+            aliases: vec![],
             last_gift_aid: None,
             account_descrs: vec![],
         }
@@ -30,12 +36,32 @@ impl Member {
         &self.name
     }
 
+    pub fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
     pub fn member_id(&self) -> usize {
         self.member_id
     }
 
     pub fn address(&self) -> &str {
         &self.address
+    }
+
+    pub fn change_name<I: Into<String>>(&mut self, i: I) {
+        self.name = i.into();
+    }
+
+    pub fn add_alias<I: Into<String>>(&mut self, i: I) {
+        self.aliases.push(i.into());
+    }
+
+    pub fn clear_aliases(&mut self) {
+        self.aliases.clear();
+    }
+
+    pub fn change_address<I: Into<String>>(&mut self, i: I) {
+        self.address = i.into();
     }
 
     pub fn add_account_descr<I: Into<String>>(&mut self, i: I) {
@@ -55,65 +81,99 @@ impl Member {
 crate::make_db_item!(DbMember, Member);
 
 //a DbMembers
+//tp DbMembersState
+/// All the members in the database
+#[derive(Debug)]
+pub struct DbMembersState {
+    array: Vec<DbMember>,
+    map: HashMap<String, DbMember>,
+}
+
 //tp DbMembers
-/// All the related parties in the database
+/// All the members in the database
 #[derive(Debug)]
 pub struct DbMembers {
-    array: Vec<DbMember>,
+    state: RefCell<DbMembersState>,
 }
 
 //ip Default for DbMembers
 impl Default for DbMembers {
     fn default() -> Self {
-        Self::new()
+        let array = vec![];
+        let map = HashMap::new();
+        let state = (DbMembersState { array, map }).into();
+        Self { state }
     }
 }
 
 //ip DbMembers
 impl DbMembers {
-    //cp new
-    pub fn new() -> Self {
-        let array = vec![];
-        Self { array }
+    //mp db_ids
+    pub fn db_ids(&self) -> Vec<DbId> {
+        self.state.borrow().array.iter().map(|db| db.id()).collect()
     }
 
-    //mp iter_db_id
-    pub fn iter_db_id(&self) -> impl Iterator<Item = DbId> + use<'_> {
-        self.array.iter().map(|m| m.id)
-    }
-
-    //mp iter_member_id
-    pub fn iter_member_id(&self) -> impl Iterator<Item = usize> + use<'_> {
-        self.array.iter().map(|m| m.inner().member_id)
+    //mp member_ids
+    pub fn member_ids(&self) -> Vec<usize> {
+        self.state
+            .borrow()
+            .array
+            .iter()
+            .map(|db| db.inner().member_id)
+            .collect()
     }
 
     //mp add_member
-    pub fn add_member(&mut self, db_related_member: DbMember) -> bool {
-        if self.has_member(&db_related_member.inner().name) {
+    pub fn add_member(&self, db_member: DbMember) -> bool {
+        if self.has_member_id(db_member.inner().member_id) {
             return false;
         }
-        self.array.push(db_related_member.clone());
+        if self.has_member(db_member.inner().name()) {
+            return false;
+        }
+        for a in db_member.inner().aliases() {
+            if self.has_member(a) {
+                return false;
+            }
+        }
+        let mut state = self.state.borrow_mut();
+        state.array.push(db_member.clone());
+        state
+            .map
+            .insert(db_member.inner().name().to_string(), db_member.clone());
+        for a in db_member.inner().aliases() {
+            state.map.insert(a.clone(), db_member.clone());
+        }
         true
     }
 
     //ap has_member
     pub fn has_member(&self, name: &str) -> bool {
-        self.array.iter().any(|a| a.inner().name == name)
+        self.state.borrow().map.contains_key(name)
     }
 
     //ap get_member
-    pub fn get_member(&self, name: &str) -> Option<&DbMember> {
-        self.array.iter().find(|a| a.inner().name == name)
+    pub fn get_member(&self, name: &str) -> Option<DbMember> {
+        self.state.borrow().map.get(name).cloned()
     }
 
     //ap has_member_id
-    pub fn has_member_idr(&self, id: usize) -> bool {
-        self.array.iter().any(|a| a.inner().member_id == id)
+    pub fn has_member_id(&self, id: usize) -> bool {
+        self.state
+            .borrow()
+            .array
+            .iter()
+            .any(|a| a.inner().member_id == id)
     }
 
     //ap get_member_id
-    pub fn get_member_id(&self, id: usize) -> Option<&DbMember> {
-        self.array.iter().find(|a| a.inner().member_id == id)
+    pub fn get_member_id(&self, id: usize) -> Option<DbMember> {
+        self.state
+            .borrow()
+            .array
+            .iter()
+            .find(|a| a.inner().member_id == id)
+            .cloned()
     }
 
     //zz All done
@@ -126,8 +186,9 @@ impl Serialize for DbMembers {
         S: Serializer,
     {
         use serde::ser::SerializeSeq;
-        let mut seq = serializer.serialize_seq(Some(self.array.len()))?;
-        for db_acc in self.array.iter() {
+        let state = self.state.borrow();
+        let mut seq = serializer.serialize_seq(Some(state.array.len()))?;
+        for db_acc in state.array.iter() {
             seq.serialize_element(&*db_acc.inner())?;
         }
         seq.end()

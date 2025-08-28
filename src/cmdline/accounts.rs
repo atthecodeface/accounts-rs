@@ -9,8 +9,9 @@ use crate::Error;
 //a Write
 fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     println!("Accounts:");
-    for k in cmd_args.db.accounts().descs() {
-        let account = cmd_args.db.accounts().get_account(k).unwrap().borrow();
+    for k in cmd_args.db.accounts().ids() {
+        let account = cmd_args.db.get(k).unwrap().account().unwrap();
+        let account = account.borrow();
         println!("  {k} : {} - {}", account.org(), account.name());
     }
     Ok("".into())

@@ -1,7 +1,10 @@
 //a Imports
-use serde::{Deserialize, Serialize, Serializer};
+use std::cell::RefCell;
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize, Serializer};
+
+use crate::indexed_vec::Idx;
 use crate::Error;
 use crate::{AccountDesc, Amount, Date, DbId};
 
@@ -77,7 +80,7 @@ pub struct BankTransaction {
     balance: Amount,
     /// Related party
     #[serde(default)]
-    related_party: Option<DbId>,
+    related_party: DbId,
 }
 
 //ip BankTransaction
@@ -101,8 +104,8 @@ impl BankTransaction {
             credit,
             balance,
             ordering: 0,
-            account_id: DbId::default(),
-            related_party: None,
+            account_id: DbId::none(),
+            related_party: DbId::none(),
         }
     }
 
@@ -121,13 +124,18 @@ impl BankTransaction {
         &self.account_desc
     }
 
+    //ap account_id
+    pub fn account_id(&self) -> DbId {
+        self.account_id
+    }
+
     //ap date
     pub fn date(&self) -> Date {
         self.date
     }
 
     //ap related_party
-    pub fn related_party(&self) -> Option<DbId> {
+    pub fn related_party(&self) -> DbId {
         self.related_party
     }
 
@@ -136,9 +144,14 @@ impl BankTransaction {
         &self.description
     }
 
-    //ap account_id
-    pub fn account_id(&self) -> DbId {
-        self.account_id
+    //mp set_related_party
+    pub fn set_related_party(&mut self, related_party: DbId) {
+        self.related_party = related_party;
+    }
+
+    //mp set_account_id
+    pub fn set_account_id(&mut self, account_id: DbId) {
+        self.account_id = account_id;
     }
 }
 
@@ -146,42 +159,42 @@ impl BankTransaction {
 crate::make_db_item!(DbBankTransaction, BankTransaction);
 
 //a DbBankTransactions
+//tp DbBankTransactionsState
+/// All the members in the database
+#[derive(Debug, Default)]
+pub struct DbBankTransactionsState {
+    /// All the transactions
+    array: Vec<DbBankTransaction>,
+    // Indexed by description
+    // index: HashMap<String, DbBankTransaction>,
+}
+
 //tp DbBankTransactions
 /// All the related parties in the database
 #[derive(Debug, Default)]
 pub struct DbBankTransactions {
-    array: Vec<DbBankTransaction>,
-    index: HashMap<String, DbId>,
+    state: RefCell<DbBankTransactionsState>,
 }
 
 //ip DbBankTransactions
 impl DbBankTransactions {
-    //mp iter_db_id
-    pub fn iter_db_id(&self) -> impl Iterator<Item = DbId> + use<'_> {
-        self.array.iter().map(|m| m.id)
+    //mp db_ids
+    pub fn db_ids(&self) -> Vec<DbId> {
+        self.state.borrow().array.iter().map(|db| db.id()).collect()
     }
 
     //mp add_transaction
-    pub fn add_transaction(&mut self, db_transaction: DbBankTransaction) -> bool {
-        if self.has_transaction(&db_transaction.inner().description) {
-            return false;
-        }
-        self.index.insert(
-            db_transaction.inner().description.clone(),
-            db_transaction.id,
-        );
-        self.array.push(db_transaction.clone());
+    pub fn add_transaction(&self, db_transaction: DbBankTransaction) -> bool {
+        // if self.has_transaction(&db_transaction.inner().description()) {
+        // return false;
+        // }
+        let mut state = self.state.borrow_mut();
+        state.array.push(db_transaction.clone());
+        // state.index.insert(
+        //            db_transaction.inner().description().to_string(),
+        // db_transaction.clone(),
+        // );
         true
-    }
-
-    //ap has_transaction
-    pub fn has_transaction(&self, description: &str) -> bool {
-        self.index.contains_key(description)
-    }
-
-    //ap get_transaction
-    pub fn get_transaction(&self, description: &str) -> Option<DbId> {
-        self.index.get(description).copied()
     }
 
     //zz All done
@@ -194,8 +207,9 @@ impl Serialize for DbBankTransactions {
         S: Serializer,
     {
         use serde::ser::SerializeSeq;
-        let mut seq = serializer.serialize_seq(Some(self.array.len()))?;
-        for db_acc in self.array.iter() {
+        let state = self.state.borrow();
+        let mut seq = serializer.serialize_seq(Some(state.array.len()))?;
+        for db_acc in state.array.iter() {
             seq.serialize_element(&*db_acc.inner())?;
         }
         seq.end()

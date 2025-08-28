@@ -150,6 +150,13 @@ impl DbItem {
             None
         }
     }
+    pub fn bank_transaction(&self) -> Option<DbBankTransaction> {
+        if let DbItemTypeE::BankTransaction(bank_transaction) = &self.value {
+            Some(bank_transaction.clone())
+        } else {
+            None
+        }
+    }
 }
 
 //ip From<(DbId, Account)> for DbItem
