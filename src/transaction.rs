@@ -14,31 +14,9 @@ use crate::{AccountDesc, Amount, Date, DbId};
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum TransactionType {
     #[default]
-    Unknown,
-    StandingOrder,
-    BacsIn,
-    Fpi,
-    Deposit,
-    DirectDebit,
-}
-
-//ip TransactionType
-impl TransactionType {
-    //cp parse
-    /// Parse a string into a transaction type
-    pub fn parse(s: &str, _is_debit: bool) -> Result<Self, Error> {
-        if s == "SO" {
-            Ok(Self::StandingOrder)
-        } else if s == "BGC" {
-            Ok(Self::BacsIn)
-        } else if s == "FPI" {
-            Ok(Self::Fpi)
-        } else if s == "DD" {
-            Ok(Self::DirectDebit)
-        } else {
-            Ok(Self::Unknown)
-        }
-    }
+    FundTransfer,
+    FromRp,
+    ToRp,
 }
 
 //a Transaction, DbTransaction
@@ -55,31 +33,16 @@ pub struct Transaction {
     /// Date
     ///
     date: Date,
-    /// Account order (usually Data + small offset)
-    ///
-    /// The ordering in which it is placed within the account
-    ///
-    /// If this is 'none' then the ordering is unknown
-    ordering: usize,
     /// CSV Transaction Type,
     ttype: TransactionType,
-    ///  account description that the transaction belongs to
-    account_id: DbId,
-    ///  account description that the transaction belongs to
-    ///
-    /// Lose this
-    account_desc: AccountDesc,
-    /// Description; probably includes user etc
-    description: String,
+    /// Debit side of transaction
+    debit_id: DbId,
+    /// Credit side of transaction
+    credit_id: DbId,
     /// Amount of a debit
-    debit: Amount,
-    /// Amount of a credit
-    credit: Amount,
-    /// Balance after the transaction
-    balance: Amount,
-    /// Related party
-    #[serde(default)]
-    related_party: DbId,
+    amount: Amount,
+    /// Notes
+    notes: Vec<String>,
 }
 
 //ip Transaction
@@ -88,44 +51,18 @@ impl Transaction {
     pub fn new(
         date: Date,
         ttype: TransactionType,
-        account_desc: AccountDesc,
-        description: String,
-        debit: Amount,
-        credit: Amount,
-        balance: Amount,
+        amount: Amount,
+        debit_id: DbId,
+        credit_id: DbId,
     ) -> Self {
         Self {
             date,
             ttype,
-            account_desc,
-            description,
-            debit,
-            credit,
-            balance,
-            ordering: 0,
-            account_id: DbId::none(),
-            related_party: DbId::none(),
+            amount,
+            debit_id,
+            credit_id,
+            notes: vec![],
         }
-    }
-
-    //ap balance
-    pub fn balance(&self) -> Amount {
-        self.balance
-    }
-
-    //ap balance_delta
-    pub fn balance_delta(&self) -> Amount {
-        (self.credit.value() - self.debit.value()).into()
-    }
-
-    //ap account_desc
-    pub fn account_desc(&self) -> &AccountDesc {
-        &self.account_desc
-    }
-
-    //ap account_id
-    pub fn account_id(&self) -> DbId {
-        self.account_id
     }
 
     //ap date
@@ -133,24 +70,34 @@ impl Transaction {
         self.date
     }
 
-    //ap related_party
-    pub fn related_party(&self) -> DbId {
-        self.related_party
+    //ap amount
+    pub fn amount(&self) -> Amount {
+        self.amount
     }
 
-    //ap description
-    pub fn description(&self) -> &str {
-        &self.description
+    //ap ttype
+    pub fn ttype(&self) -> TransactionType {
+        self.ttype
     }
 
-    //mp set_related_party
-    pub fn set_related_party(&mut self, related_party: DbId) {
-        self.related_party = related_party;
+    //ap db_ids
+    pub fn db_ids(&self) -> (DbId, DbId) {
+        (self.debit_id, self.credit_id)
     }
 
-    //mp set_account_id
-    pub fn set_account_id(&mut self, account_id: DbId) {
-        self.account_id = account_id;
+    //ap notes
+    pub fn notes(&self) -> &[String] {
+        &self.notes
+    }
+
+    //mp clear_notes
+    pub fn clear_notes(&mut self) {
+        self.notes.clear();
+    }
+
+    //mp add_note
+    pub fn add_note<I: Into<String>>(&mut self, s: I) {
+        self.notes.push(s.into());
     }
 }
 
