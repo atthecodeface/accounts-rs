@@ -78,7 +78,7 @@ where
     date_order: Vec<(Date, OTIndex)>,
 }
 
-//ip Index<ArrayIndex> for VecWithIndex
+//ip Index<OTCursor> for OrderedTransactions
 impl<T> std::ops::Index<OTCursor> for OrderedTransactions<T>
 where
     T: OrderedTransactionId,
@@ -106,7 +106,9 @@ where
     fn next(&mut self) -> Option<OTCursor> {
         let cursor = self.cursor;
         if cursor.is_valid() {
-            self.transactions.cursor_next(&mut self.cursor);
+            if !self.transactions.cursor_next(&mut self.cursor) {
+                self.cursor = OTCursor::invalid();
+            }
             Some(cursor)
         } else {
             None
@@ -136,7 +138,7 @@ where
         }
     }
 
-    //cp add_iter
+    //mp add_iter
     pub fn add_iter<I, F, S>(&mut self, iter: I, date_item: F)
     where
         I: Iterator<Item = S>,
@@ -144,17 +146,24 @@ where
     {
         for s in iter {
             let (d, t) = date_item(s);
-            let (added_date, ot_d) = self.transactions_by_date.find_or_add(d, |_| (d, vec![]));
-            if added_date {
-                self.date_order.push((d, ot_d));
-            }
-            self.transactions_by_date[ot_d].1.push(t);
+            self.push_to_date(d, t);
         }
         self.sort();
     }
 
-    //mi sort
-    fn sort(&mut self) {
+    //mp push_to_date
+    pub fn push_to_date(&mut self, date: Date, item: T) {
+        let (found, ot_d) = self
+            .transactions_by_date
+            .find_or_add(date, |_| (date, vec![]));
+        if !found {
+            self.date_order.push((date, ot_d));
+        }
+        self.transactions_by_date[ot_d].1.push(item);
+    }
+
+    //mp sort
+    pub fn sort(&mut self) {
         self.date_order.sort_by_key(|d_idx| d_idx.0);
     }
 
@@ -184,10 +193,10 @@ where
     //mp cursor_next
     pub fn cursor_next(&self, cursor: &mut OTCursor) -> bool {
         if cursor.valid {
-            if cursor.ofs < self.transactions_by_date[cursor.idx].1.len() {
+            if cursor.ofs + 1 < self.transactions_by_date[cursor.idx].1.len() {
                 cursor.ofs += 1;
                 true
-            } else if cursor.idx.index() < self.transactions_by_date.len() {
+            } else if cursor.idx.index() + 1 < self.transactions_by_date.len() {
                 cursor.idx = cursor.idx.increment();
                 cursor.ofs = 0;
                 true
@@ -295,6 +304,11 @@ where
                             (false, true)
                         }
                     };
+                    eprintln!(
+                        "{index}, {}, {}, {index_is_end}, {use_end_of_previous}, {is_accurate}",
+                        self.date_order.len(),
+                        self.transactions_by_date.len()
+                    );
                     if use_end_of_previous {
                         let index = OTIndex::from_usize(index - 1);
                         (

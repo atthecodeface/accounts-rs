@@ -32,6 +32,14 @@ impl std::ops::Add<Amount> for Amount {
     }
 }
 
+//ip Sub<Amount> for Amount
+impl std::ops::Sub<Amount> for Amount {
+    type Output = Amount;
+    fn sub(self, other: Amount) -> Amount {
+        (self.value - other.value).into()
+    }
+}
+
 //ip Amount
 impl Amount {
     //ci of_f32
@@ -71,6 +79,6 @@ impl std::str::FromStr for Amount {
 //ip Display for Amount
 impl std::fmt::Display for Amount {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(fmt, "{:.2}", (self.value as f64) / 100.0)
+        write!(fmt, "{:10.2}", (self.value as f64) / 100.0)
     }
 }

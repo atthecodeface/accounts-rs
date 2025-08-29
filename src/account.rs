@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::Idx;
-use crate::{AccountDesc, BankTransaction, Database, DbId, OrderedTransactions};
+use crate::{AccountDesc, BankTransaction, Database, Date, DbId, OrderedTransactions};
 
 //a Account
 //tp Account
@@ -26,6 +26,7 @@ pub struct Account {
 
 //ip Account
 impl Account {
+    //cp new
     pub fn new(org: String, name: String, desc: AccountDesc) -> Self {
         let transactions = OrderedTransactions::default();
         Self {
@@ -35,11 +36,67 @@ impl Account {
             transactions,
         }
     }
+
+    //ap org
     pub fn org(&self) -> &str {
         &self.org
     }
+
+    //ap name
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    //mp transactions_between_dates
+    pub fn transactions_between_dates(&self, start: Date, end: Date) -> Vec<DbId> {
+        let (mut c, _) = self.transactions.cursor_of_date(start, true);
+        let mut result = vec![];
+        loop {
+            let Some(date) = self.transactions.cursor_date(&c) else {
+                break;
+            };
+            if date >= end {
+                break;
+            }
+            result.push(self.transactions[c]);
+            if !self.transactions.cursor_next(&mut c) {
+                break;
+            }
+        }
+        result
+    }
+
+    //mp validate_transactions
+    pub fn validate_transactions(&self, db: &Database) -> Vec<(DbId, String)> {
+        let bt_of_c = |c| {
+            db.get(self.transactions[c])
+                .unwrap()
+                .bank_transaction()
+                .unwrap()
+        };
+        let mut result = vec![];
+        let c = self.transactions.cursor_first();
+        eprintln!("{c:?}");
+        if c.is_valid() {
+            let bt = bt_of_c(c);
+            let mut balance = bt.inner().balance() - bt.inner().balance_delta(); // balance *before* first transaction
+            for c in self.transactions.iter() {
+                let bt = bt_of_c(c);
+                if bt.inner().balance() != balance + bt.inner().balance_delta() {
+                    result.push((
+                        bt.id(),
+                        format!(
+                            "Mismatch in balance: before {}, delta {}, after {}",
+                            balance,
+                            bt.inner().balance_delta(),
+                            bt.inner().balance()
+                        ),
+                    ));
+                }
+                balance = bt.inner().balance();
+            }
+        }
+        result
     }
 
     //mp add_bank_transaction
@@ -73,6 +130,7 @@ impl Account {
                 db_bank_transaction.inner().description()
             );
         }
+        self.transactions.push_to_date(date, db_id);
         Ok(())
     }
 
@@ -108,6 +166,7 @@ impl Account {
                 _ => (),
             }
         }
+        self.transactions.sort();
         if errors.is_empty() {
             Ok(())
         } else {
@@ -175,6 +234,16 @@ impl DbAccounts {
     //ap get_account
     pub fn get_account(&self, desc: &AccountDesc) -> Option<DbAccount> {
         self.state.borrow().map.get(desc).cloned()
+    }
+
+    //ap get_account_by_name
+    pub fn get_account_by_name(&self, name: &str) -> Option<DbAccount> {
+        self.state
+            .borrow()
+            .array
+            .iter()
+            .find(|s| s.inner().name() == name)
+            .cloned()
     }
 
     //zz All done

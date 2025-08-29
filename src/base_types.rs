@@ -129,6 +129,23 @@ impl Date {
             Err(Error::ParseDate(s.into()))
         }
     }
+
+    //cp parse_user
+    pub fn parse_user(s: &str) -> Result<Self, Error> {
+        if let Ok(date) = chrono::NaiveDate::parse_from_str(s, "%d/%m/%Y") {
+            let timestamp = date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as usize;
+            Ok(Self { value: timestamp })
+        } else {
+            Err(Error::ParseDate(s.into()))
+        }
+    }
+
+    //cp plus_days
+    pub fn plus_days(&self, n: usize) -> Self {
+        let value = self.value + 24 * 60 * 60 * n;
+        Self { value }
+    }
+
     //ap dmy
     pub fn dmy(&self) -> (u32, u32, i32) {
         use chrono::Datelike;
