@@ -12,7 +12,7 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     for k in cmd_args.db.related_parties().db_ids() {
         let member = cmd_args.db.get(k).unwrap().related_party().unwrap();
         let member = member.borrow();
-        println!("  {k} : {} - {}", member.related_party_id(), member.name());
+        println!("  {k} : {} - {}", member.rp_id(), member.name());
         for d in member.account_descrs() {
             println!("      {d}");
         }

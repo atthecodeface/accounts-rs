@@ -8,7 +8,9 @@ use crate::indexed_vec::Idx;
 use crate::{Date, DbId};
 
 //a RelatedPartyType, RelatedPartyQuery
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum RelatedPartyType {
+    #[default]
     Member,
     Friend,
     Donor,
@@ -17,6 +19,7 @@ pub enum RelatedPartyType {
     Director,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum RelatedPartyQuery {
     RpType(RelatedPartyType),
     Any,
@@ -24,10 +27,11 @@ pub enum RelatedPartyQuery {
 
 //a RelatedParty
 //tp RelatedParty
-#[derive(Clone, Debug, Default, Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct RelatedParty {
     name: String,
-    related_party_id: usize,
+    rp_id: usize,
+    rp_type: RelatedPartyType,
     address: String,
     email: String,
     house_number: String,
@@ -37,15 +41,16 @@ pub struct RelatedParty {
     last_gift_aid: Option<Date>,
     account_descrs: Vec<String>,
     aliases: Vec<String>,
+    invoices: Vec<DbId>,
 }
 
 //ip RelatedParty
 impl RelatedParty {
     //cp new
-    pub fn new(name: String, related_party_id: usize) -> Self {
+    pub fn new(name: String, rp_id: usize) -> Self {
         let mut s = Self::default();
         s.name = name;
-        s.related_party_id = related_party_id;
+        s.rp_id = rp_id;
         s
     }
 
@@ -59,9 +64,14 @@ impl RelatedParty {
         &self.aliases
     }
 
-    //ap related_party_id
-    pub fn related_party_id(&self) -> usize {
-        self.related_party_id
+    //ap rp_id
+    pub fn rp_id(&self) -> usize {
+        self.rp_id
+    }
+
+    //ap rp_type
+    pub fn rp_type(&self) -> RelatedPartyType {
+        self.rp_type
     }
 
     //ap address
@@ -181,19 +191,19 @@ impl DbRelatedParties {
         self.state.borrow().array.iter().map(|db| db.id()).collect()
     }
 
-    //mp related_party_ids
-    pub fn related_party_ids(&self) -> Vec<usize> {
+    //mp rp_ids
+    pub fn rp_ids(&self) -> Vec<usize> {
         self.state
             .borrow()
             .array
             .iter()
-            .map(|db| db.inner().related_party_id)
+            .map(|db| db.inner().rp_id)
             .collect()
     }
 
     //mp add_related_party
     pub fn add_related_party(&self, db_related_party: DbRelatedParty) -> bool {
-        if self.has_related_party_id(db_related_party.inner().related_party_id) {
+        if self.has_rp_id(db_related_party.inner().rp_id) {
             return false;
         }
         if self
@@ -245,7 +255,7 @@ impl DbRelatedParties {
         if name.chars().all(|c| c.is_digit(10)) {
             match name.parse::<usize>() {
                 Ok(n) => {
-                    return self.get_related_party_id(n.into());
+                    return self.get_rp_id(n.into());
                 }
                 _ => (),
             }
@@ -253,22 +263,22 @@ impl DbRelatedParties {
         self.state.borrow().map.get(name).cloned()
     }
 
-    //ap has_related_party_id
-    pub fn has_related_party_id(&self, id: usize) -> bool {
+    //ap has_rp_id
+    pub fn has_rp_id(&self, id: usize) -> bool {
         self.state
             .borrow()
             .array
             .iter()
-            .any(|a| a.inner().related_party_id == id)
+            .any(|a| a.inner().rp_id == id)
     }
 
-    //ap get_related_party_id
-    pub fn get_related_party_id(&self, id: usize) -> Option<DbRelatedParty> {
+    //ap get_rp_id
+    pub fn get_rp_id(&self, id: usize) -> Option<DbRelatedParty> {
         self.state
             .borrow()
             .array
             .iter()
-            .find(|a| a.inner().related_party_id == id)
+            .find(|a| a.inner().rp_id == id)
             .cloned()
     }
 
