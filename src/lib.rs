@@ -47,14 +47,13 @@ pub use ordered::{OTCursor, OTIndex, OrderedTransactions};
 mod amount;
 pub use amount::Amount;
 
-mod member;
-pub use member::{DbMember, DbMembers, Member};
-
 mod related_parties;
 pub use related_parties::RelatedParties;
 
-// mod related_party;
-// pub use related_party::{DbRelatedParties, DbRelatedParty, RelatedParty};
+mod related_party;
+pub use related_party::{
+    DbRelatedParties, DbRelatedParty, RelatedParty, RelatedPartyQuery, RelatedPartyType,
+};
 
 mod receivables;
 

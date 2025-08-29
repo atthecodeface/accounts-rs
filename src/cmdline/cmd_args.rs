@@ -1,7 +1,8 @@
 //a Imports
 use thunderclap::{CommandArgs, CommandBuilder};
 
-use crate::{Database, Date, DbAccount, DbMember, Error, FileFormat, FileType};
+use crate::RelatedPartyQuery;
+use crate::{Database, Date, DbAccount, DbRelatedParty, Error, FileFormat, FileType};
 
 //a CmdArgs
 //tp CmdArgs
@@ -172,8 +173,12 @@ impl CmdArgs {
     }
 
     //ap get_member
-    pub fn get_member(&self, name: &str) -> Result<DbMember, Error> {
-        if let Some(db_m) = self.db.members().get_member(name) {
+    pub fn get_member(&self, name: &str) -> Result<DbRelatedParty, Error> {
+        if let Some(db_m) = self
+            .db
+            .related_parties()
+            .get_party(name, RelatedPartyQuery::Any)
+        {
             Ok(db_m)
         } else {
             Err(format!("Did not find member '{}'", name).into())

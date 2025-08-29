@@ -33,7 +33,7 @@ use std::collections::HashMap;
 use crate::indexed_vec::Idx;
 
 use crate::{Account, DbAccounts, RelatedParties};
-use crate::{BankTransaction, DbBankTransactions, DbMembers, Member};
+use crate::{BankTransaction, DbBankTransactions, DbRelatedParties, RelatedParty};
 use crate::{DbId, DbItem};
 use crate::{Error, FileFormat};
 
@@ -57,7 +57,7 @@ use crate::{Error, FileFormat};
 ///     of credits that balance. They are somewhat free-form - they
 ///     could be for a particular event, a particular season or year,
 ///     or for a particular category (such as subscriptions for
-///     members). This is handled by a set of transaction tags
+///     related_parties). This is handled by a set of transaction tags
 ///
 /// A Database can be serialized and deserialized, and will provide
 /// other mechanisms for saving (such as export to MySql datatbase, or
@@ -94,10 +94,10 @@ pub struct Database {
     /// All of the accounts in the database
     accounts: DbAccounts,
 
-    /// All of the members in the database
-    members: DbMembers,
+    /// All of the related_parties in the database
+    related_parties: DbRelatedParties,
 
-    /// All of the members/friends/donors/suppliers in the database
+    /// All of the related_parties/friends/donors/suppliers in the database
     /// related_parties: DbRelatedParties,
 
     /// All of the transactions in the database
@@ -114,9 +114,9 @@ impl Database {
         &self.accounts
     }
 
-    //ap members
-    pub fn members(&self) -> &DbMembers {
-        &self.members
+    //ap related_parties
+    pub fn related_parties(&self) -> &DbRelatedParties {
+        &self.related_parties
     }
 
     //ap bank_transactions
@@ -141,10 +141,11 @@ impl Database {
         (db_id, item)
     }
 
-    //mp add_member
-    pub fn add_member(&self, member: Member) -> DbId {
-        let (db_id, item) = self.add_item(member);
-        self.members.add_member(item.member().unwrap());
+    //mp add_related_party
+    pub fn add_related_party(&self, related_party: RelatedParty) -> DbId {
+        let (db_id, item) = self.add_item(related_party);
+        self.related_parties
+            .add_related_party(item.related_party().unwrap());
         db_id
     }
 
@@ -196,7 +197,7 @@ impl Database {
             let Some(db_item) = state.items.get(&id) else {
                 panic!("Bug - ids should all exist");
             };
-            if let Some(d) = db_item.member() {
+            if let Some(d) = db_item.related_party() {
                 for s in d.inner().account_descrs() {
                     f(id, s);
                 }

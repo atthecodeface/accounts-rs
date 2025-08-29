@@ -27,8 +27,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::DbId;
-use crate::DbMember;
-use crate::{Account, BankTransaction, DbAccount, DbBankTransaction, Member}; //, DbRelatedParty};
+use crate::{Account, DbAccount};
+use crate::{BankTransaction, DbBankTransaction};
+use crate::{DbRelatedParty, RelatedParty};
 
 //a DbItemKind
 //tt trait DbitemKind
@@ -107,7 +108,6 @@ pub enum DbItemType {
     Account,
     BankTransaction,
     RelatedParty,
-    Member,
 }
 
 //tp DbItemTypeE
@@ -115,8 +115,7 @@ pub enum DbItemType {
 pub enum DbItemTypeE {
     Account(DbAccount),
     BankTransaction(DbBankTransaction),
-    //    RelatedParty(DbRelatedParty),
-    Member(DbMember),
+    RelatedParty(DbRelatedParty),
 }
 
 //a DbItem
@@ -143,9 +142,9 @@ impl DbItem {
             None
         }
     }
-    pub fn member(&self) -> Option<DbMember> {
-        if let DbItemTypeE::Member(member) = &self.value {
-            Some(member.clone())
+    pub fn related_party(&self) -> Option<DbRelatedParty> {
+        if let DbItemTypeE::RelatedParty(related_party) = &self.value {
+            Some(related_party.clone())
         } else {
             None
         }
@@ -170,13 +169,13 @@ impl From<(DbId, Account)> for DbItem {
     }
 }
 
-//ip From<(DbId, Member)> for DbItem
-impl From<(DbId, Member)> for DbItem {
-    fn from((id, member): (DbId, Member)) -> Self {
+//ip From<(DbId, RelatedParty)> for DbItem
+impl From<(DbId, RelatedParty)> for DbItem {
+    fn from((id, related_party): (DbId, RelatedParty)) -> Self {
         Self {
             id,
-            itype: DbItemType::Member,
-            value: DbItemTypeE::Member((id, member).into()),
+            itype: DbItemType::RelatedParty,
+            value: DbItemTypeE::RelatedParty((id, related_party).into()),
         }
     }
 }

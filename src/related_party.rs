@@ -7,12 +7,27 @@ use serde::{Deserialize, Serialize, Serializer};
 use crate::indexed_vec::Idx;
 use crate::{Date, DbId};
 
-//a Member
-//tp Member
+//a RelatedPartyType, RelatedPartyQuery
+pub enum RelatedPartyType {
+    Member,
+    Friend,
+    Donor,
+    Supplier,
+    Musician,
+    Director,
+}
+
+pub enum RelatedPartyQuery {
+    RpType(RelatedPartyType),
+    Any,
+}
+
+//a RelatedParty
+//tp RelatedParty
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Hash, PartialEq, Eq)]
-pub struct Member {
+pub struct RelatedParty {
     name: String,
-    member_id: usize,
+    related_party_id: usize,
     address: String,
     email: String,
     house_number: String,
@@ -24,13 +39,13 @@ pub struct Member {
     aliases: Vec<String>,
 }
 
-//ip Member
-impl Member {
+//ip RelatedParty
+impl RelatedParty {
     //cp new
-    pub fn new(name: String, member_id: usize) -> Self {
+    pub fn new(name: String, related_party_id: usize) -> Self {
         let mut s = Self::default();
         s.name = name;
-        s.member_id = member_id;
+        s.related_party_id = related_party_id;
         s
     }
 
@@ -44,9 +59,9 @@ impl Member {
         &self.aliases
     }
 
-    //ap member_id
-    pub fn member_id(&self) -> usize {
-        self.member_id
+    //ap related_party_id
+    pub fn related_party_id(&self) -> usize {
+        self.related_party_id
     }
 
     //ap address
@@ -130,106 +145,107 @@ impl Member {
     }
 }
 
-//tp DbMember
-crate::make_db_item!(DbMember, Member);
+//tp DbRelatedParty
+crate::make_db_item!(DbRelatedParty, RelatedParty);
 
-//a DbMembers
-//tp DbMembersState
-/// All the members in the database
+//a DbRelatedParties
+//tp DbRelatedPartiesState
+/// All the related_parties in the database
 #[derive(Debug)]
-pub struct DbMembersState {
-    array: Vec<DbMember>,
-    map: HashMap<String, DbMember>,
+pub struct DbRelatedPartiesState {
+    array: Vec<DbRelatedParty>,
+    map: HashMap<String, DbRelatedParty>,
 }
 
-//tp DbMembers
-/// All the members in the database
+//tp DbRelatedParties
+/// All the related_parties in the database
 #[derive(Debug)]
-pub struct DbMembers {
-    state: RefCell<DbMembersState>,
+pub struct DbRelatedParties {
+    state: RefCell<DbRelatedPartiesState>,
 }
 
-//ip Default for DbMembers
-impl Default for DbMembers {
+//ip Default for DbRelatedParties
+impl Default for DbRelatedParties {
     fn default() -> Self {
         let array = vec![];
         let map = HashMap::new();
-        let state = (DbMembersState { array, map }).into();
+        let state = (DbRelatedPartiesState { array, map }).into();
         Self { state }
     }
 }
 
-//ip DbMembers
-impl DbMembers {
+//ip DbRelatedParties
+impl DbRelatedParties {
     //mp db_ids
     pub fn db_ids(&self) -> Vec<DbId> {
         self.state.borrow().array.iter().map(|db| db.id()).collect()
     }
 
-    //mp member_ids
-    pub fn member_ids(&self) -> Vec<usize> {
+    //mp related_party_ids
+    pub fn related_party_ids(&self) -> Vec<usize> {
         self.state
             .borrow()
             .array
             .iter()
-            .map(|db| db.inner().member_id)
+            .map(|db| db.inner().related_party_id)
             .collect()
     }
 
-    //mp add_member
-    pub fn add_member(&self, db_member: DbMember) -> bool {
-        if self.has_member_id(db_member.inner().member_id) {
+    //mp add_related_party
+    pub fn add_related_party(&self, db_related_party: DbRelatedParty) -> bool {
+        if self.has_related_party_id(db_related_party.inner().related_party_id) {
             return false;
         }
-        if self.has_member(db_member.inner().name()) {
+        if self
+            .state
+            .borrow()
+            .map
+            .contains_key(db_related_party.inner().name())
+        {
             return false;
         }
-        for a in db_member.inner().aliases() {
-            if self.has_member(a) {
+        for a in db_related_party.inner().aliases() {
+            if self.state.borrow().map.contains_key(a) {
                 return false;
             }
         }
         let mut state = self.state.borrow_mut();
-        state.array.push(db_member.clone());
-        state
-            .map
-            .insert(db_member.inner().name().to_string(), db_member.clone());
-        self.add_member_aliases(&db_member);
+        state.array.push(db_related_party.clone());
+        state.map.insert(
+            db_related_party.inner().name().to_string(),
+            db_related_party.clone(),
+        );
+        self.add_related_party_aliases(&db_related_party);
         true
     }
 
-    //mp remove_member_aliases
-    pub fn remove_member_aliases(&self, db_member: &DbMember) {
-        for a in db_member.inner().aliases() {
+    //mp remove_related_party_aliases
+    pub fn remove_related_party_aliases(&self, db_related_party: &DbRelatedParty) {
+        for a in db_related_party.inner().aliases() {
             if self.state.borrow().map.contains_key(a) {
                 self.state.borrow_mut().map.remove(a);
             }
         }
     }
 
-    //mp add_member_aliases
-    pub fn add_member_aliases(&self, db_member: &DbMember) {
-        for a in db_member.inner().aliases() {
+    //mp add_related_party_aliases
+    pub fn add_related_party_aliases(&self, db_related_party: &DbRelatedParty) {
+        for a in db_related_party.inner().aliases() {
             if !self.state.borrow().map.contains_key(a) {
                 self.state
                     .borrow_mut()
                     .map
-                    .insert(a.into(), db_member.clone());
+                    .insert(a.into(), db_related_party.clone());
             }
         }
     }
 
-    //ap has_member
-    pub fn has_member(&self, name: &str) -> bool {
-        self.state.borrow().map.contains_key(name)
-    }
-
-    //ap get_member
-    pub fn get_member(&self, name: &str) -> Option<DbMember> {
+    //ap get_party
+    pub fn get_party(&self, name: &str, query: RelatedPartyQuery) -> Option<DbRelatedParty> {
         if name.chars().all(|c| c.is_digit(10)) {
             match name.parse::<usize>() {
                 Ok(n) => {
-                    return self.get_member_id(n.into());
+                    return self.get_related_party_id(n.into());
                 }
                 _ => (),
             }
@@ -237,30 +253,30 @@ impl DbMembers {
         self.state.borrow().map.get(name).cloned()
     }
 
-    //ap has_member_id
-    pub fn has_member_id(&self, id: usize) -> bool {
+    //ap has_related_party_id
+    pub fn has_related_party_id(&self, id: usize) -> bool {
         self.state
             .borrow()
             .array
             .iter()
-            .any(|a| a.inner().member_id == id)
+            .any(|a| a.inner().related_party_id == id)
     }
 
-    //ap get_member_id
-    pub fn get_member_id(&self, id: usize) -> Option<DbMember> {
+    //ap get_related_party_id
+    pub fn get_related_party_id(&self, id: usize) -> Option<DbRelatedParty> {
         self.state
             .borrow()
             .array
             .iter()
-            .find(|a| a.inner().member_id == id)
+            .find(|a| a.inner().related_party_id == id)
             .cloned()
     }
 
     //zz All done
 }
 
-//ip Serialize for DbMembers
-impl Serialize for DbMembers {
+//ip Serialize for DbRelatedParties
+impl Serialize for DbRelatedParties {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
     where
         S: Serializer,

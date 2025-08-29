@@ -3,16 +3,16 @@ use clap::Command;
 use thunderclap::CommandBuilder;
 
 use crate::cmdline::CmdArgs;
-use crate::{Error, Member};
+use crate::{Error, RelatedParty, RelatedPartyQuery, RelatedPartyType};
 
 //a Members
 //fi list_fn
 fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     println!("Members:");
-    for k in cmd_args.db.members().db_ids() {
-        let member = cmd_args.db.get(k).unwrap().member().unwrap();
+    for k in cmd_args.db.related_parties().db_ids() {
+        let member = cmd_args.db.get(k).unwrap().related_party().unwrap();
         let member = member.borrow();
-        println!("  {k} : {} - {}", member.member_id(), member.name());
+        println!("  {k} : {} - {}", member.related_party_id(), member.name());
         for d in member.account_descrs() {
             println!("      {d}");
         }
@@ -25,8 +25,8 @@ fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let name = &cmd_args.string_args[0];
     let member_id = cmd_args.usize_args[0];
 
-    let member = Member::new(name.into(), member_id);
-    let db_id = cmd_args.db.add_member(member);
+    let member = RelatedParty::new(name.into(), member_id);
+    let db_id = cmd_args.db.add_related_party(member);
     Ok(format!("DbId{db_id}"))
 }
 
@@ -35,16 +35,22 @@ fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let name = &cmd_args.string_args[0];
     let clear = cmd_args.clear;
 
-    let db_m = cmd_args.get_member(name)?;
+    let db_m = cmd_args.get_member(name)?; // related_party(name, RelatedPartyQuery::Rp(RelatedPartyType::Member))?;
     let db_id = db_m.id();
-    cmd_args.db.members().remove_member_aliases(&db_m);
+    cmd_args
+        .db
+        .related_parties()
+        .remove_related_party_aliases(&db_m);
     if clear {
         db_m.inner_mut().clear_aliases();
     }
     for i in 1..cmd_args.string_args.len() {
         db_m.inner_mut().add_alias(&cmd_args.string_args[i]);
     }
-    cmd_args.db.members().add_member_aliases(&db_m);
+    cmd_args
+        .db
+        .related_parties()
+        .add_related_party_aliases(&db_m);
     Ok("".into())
 }
 
