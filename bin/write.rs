@@ -1,8 +1,9 @@
 //a Imports
-use crate::cmdline::CmdArgs;
-use crate::Error;
 use clap::Command;
 use thunderclap::CommandBuilder;
+
+use crate::CmdArgs;
+use rust_accounts::Error;
 
 //a Write
 fn write_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {

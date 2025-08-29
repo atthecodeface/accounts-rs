@@ -2,8 +2,8 @@
 use clap::Command;
 use thunderclap::CommandBuilder;
 
-use crate::cmdline::CmdArgs;
-use crate::{Error, RelatedParty};
+use crate::CmdArgs;
+use rust_accounts::{Error, RelatedParty};
 
 //a Members
 //fi list_fn

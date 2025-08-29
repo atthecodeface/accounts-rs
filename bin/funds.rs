@@ -2,8 +2,8 @@
 use clap::Command;
 use thunderclap::CommandBuilder;
 
-use crate::cmdline::CmdArgs;
-use crate::{Error, Fund};
+use crate::CmdArgs;
+use rust_accounts::{Error, Fund};
 
 //a Funds
 //fi list_fn

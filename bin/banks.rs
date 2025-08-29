@@ -2,9 +2,8 @@
 use clap::Command;
 use thunderclap::CommandBuilder;
 
-use crate::banks;
-use crate::cmdline::CmdArgs;
-use crate::Error;
+use crate::CmdArgs;
+use rust_accounts::{banks, Error};
 
 //a Members
 fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {

@@ -2,8 +2,8 @@
 use clap::Command;
 use thunderclap::CommandBuilder;
 
-use crate::cmdline::CmdArgs;
-use crate::{Date, Error};
+use crate::CmdArgs;
+use rust_accounts::{Account, AccountDesc, Date, Error};
 
 //a Accounts
 //a Write
@@ -25,8 +25,8 @@ fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let sort_code = &cmd_args.string_args[2];
     let account_number = cmd_args.usize_args[0];
 
-    let desc = crate::AccountDesc::parse_uk(sort_code, account_number)?;
-    let account = crate::Account::new(bank.to_owned(), name.to_owned(), desc);
+    let desc = AccountDesc::parse_uk(sort_code, account_number)?;
+    let account = Account::new(bank.to_owned(), name.to_owned(), desc);
 
     let db_id = cmd_args.db.add_account(account);
     Ok(format!("DbId{db_id}"))

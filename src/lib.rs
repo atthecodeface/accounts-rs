@@ -88,5 +88,3 @@ pub mod banks;
 
 mod database;
 pub use database::{Database, DatabaseRebuild};
-
-pub mod cmdline;

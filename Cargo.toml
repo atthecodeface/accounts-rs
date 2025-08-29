@@ -43,4 +43,4 @@ features = ["string"]
 
 [[bin]]
 name = "database"
-path = "bin/database.rs"
+path = "bin/main.rs"

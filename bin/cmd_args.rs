@@ -1,9 +1,9 @@
 //a Imports
 use thunderclap::{CommandArgs, CommandBuilder};
 
-use crate::RelatedPartyQuery;
-use crate::{Database, Date, Error, FileFormat, FileType};
-use crate::{DbAccount, DbFund, DbRelatedParty};
+use rust_accounts::RelatedPartyQuery;
+use rust_accounts::{Database, Date, Error, FileFormat, FileType};
+use rust_accounts::{DbAccount, DbFund, DbRelatedParty};
 
 //a CmdArgs
 //tp CmdArgs

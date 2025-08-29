@@ -1,27 +1,37 @@
 //a Imports
-use clap::Command;
-use thunderclap::CommandBuilder;
+use clap::{Arg, ArgMatches, Command};
 
-use rust_accounts::cmdline::CmdArgs;
+use crate::{Database, Error, FileFormat, FileType};
 
-pub fn main() -> Result<(), rust_accounts::Error> {
-    let command = Command::new("database")
-        .about("Accounts database tool")
-        .version("0.1.0");
+//fp add_args
+pub fn add_args(cmd: Command) -> Command {
+    cmd.arg(Arg::new("database").long("db").help("Database"))
+        .arg(
+            Arg::new("input_format")
+                .long("ifmt")
+                .default_value("dict")
+                .help("Format of the database to read"),
+        )
+}
 
-    let mut build = CommandBuilder::<CmdArgs>::new(command);
+//fp new
+pub fn new(matches: &ArgMatches) -> Result<Database, Error> {
+    let ifmt = matches
+        .get_one::<String>("input_format")
+        .unwrap()
+        .parse::<FileFormat>()?;
 
-    CmdArgs::arg_add_verbose(&mut build);
-    CmdArgs::arg_add_database(&mut build);
+    let Some(read_db) = matches.get_one::<String>("database") else {
+        return Ok(Database::default());
+    };
 
-    build.add_subcommand(rust_accounts::cmdline::accounts_cmd());
-    build.add_subcommand(rust_accounts::cmdline::banks_cmd());
-    build.add_subcommand(rust_accounts::cmdline::funds_cmd());
-    build.add_subcommand(rust_accounts::cmdline::members_cmd());
-    build.add_subcommand(rust_accounts::cmdline::write_cmd());
-
-    let mut cmd_args = CmdArgs::default();
-    let mut command = build.main(true, true);
-    command.execute_env(&mut cmd_args)?;
-    Ok(())
+    let ftype = FileType::from_filename(read_db)?;
+    let s = std::fs::read_to_string(read_db)?;
+    match ftype {
+        FileType::Json => {
+            let mut deserializer = serde_json::Deserializer::new(serde_json::de::StrRead::new(&s));
+            Database::deserialize(&mut deserializer, ifmt)
+        }
+        _ => Err(Error::FileTypeNotSupported(ftype, "database")),
+    }
 }
