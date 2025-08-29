@@ -29,7 +29,9 @@ use serde::{Deserialize, Serialize};
 use crate::DbId;
 use crate::{Account, DbAccount};
 use crate::{BankTransaction, DbBankTransaction};
+use crate::{DbFund, Fund};
 use crate::{DbRelatedParty, RelatedParty};
+use crate::{DbTransaction, Transaction};
 
 //a DbItemKind
 //tt trait DbitemKind
@@ -106,7 +108,9 @@ macro_rules! make_db_item {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum DbItemType {
     Account,
+    Fund,
     BankTransaction,
+    Transaction,
     RelatedParty,
 }
 
@@ -114,7 +118,9 @@ pub enum DbItemType {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DbItemTypeE {
     Account(DbAccount),
+    Fund(DbFund),
     BankTransaction(DbBankTransaction),
+    Transaction(DbTransaction),
     RelatedParty(DbRelatedParty),
 }
 
@@ -129,12 +135,17 @@ pub struct DbItem {
 
 //ip DbItem
 impl DbItem {
+    //ap id
     pub fn id(&self) -> DbId {
         self.id
     }
+
+    //ap itype
     pub fn itype(&self) -> DbItemType {
         self.itype
     }
+
+    //ap account
     pub fn account(&self) -> Option<DbAccount> {
         if let DbItemTypeE::Account(account) = &self.value {
             Some(account.clone())
@@ -142,6 +153,17 @@ impl DbItem {
             None
         }
     }
+
+    //ap fund
+    pub fn fund(&self) -> Option<DbFund> {
+        if let DbItemTypeE::Fund(fund) = &self.value {
+            Some(fund.clone())
+        } else {
+            None
+        }
+    }
+
+    //ap related_party
     pub fn related_party(&self) -> Option<DbRelatedParty> {
         if let DbItemTypeE::RelatedParty(related_party) = &self.value {
             Some(related_party.clone())
@@ -149,9 +171,20 @@ impl DbItem {
             None
         }
     }
+
+    //ap bank_transaction
     pub fn bank_transaction(&self) -> Option<DbBankTransaction> {
         if let DbItemTypeE::BankTransaction(bank_transaction) = &self.value {
             Some(bank_transaction.clone())
+        } else {
+            None
+        }
+    }
+
+    //ap transaction
+    pub fn transaction(&self) -> Option<DbTransaction> {
+        if let DbItemTypeE::Transaction(transaction) = &self.value {
+            Some(transaction.clone())
         } else {
             None
         }
@@ -165,6 +198,17 @@ impl From<(DbId, Account)> for DbItem {
             id,
             itype: DbItemType::Account,
             value: DbItemTypeE::Account((id, account).into()),
+        }
+    }
+}
+
+//ip From<(DbId, Fund)> for DbItem
+impl From<(DbId, Fund)> for DbItem {
+    fn from((id, fund): (DbId, Fund)) -> Self {
+        Self {
+            id,
+            itype: DbItemType::Fund,
+            value: DbItemTypeE::Fund((id, fund).into()),
         }
     }
 }
@@ -187,6 +231,17 @@ impl From<(DbId, BankTransaction)> for DbItem {
             id,
             itype: DbItemType::BankTransaction,
             value: DbItemTypeE::BankTransaction((id, trans).into()),
+        }
+    }
+}
+
+//ip From<(DbId, BankTransaction)> for DbItem
+impl From<(DbId, Transaction)> for DbItem {
+    fn from((id, trans): (DbId, Transaction)) -> Self {
+        Self {
+            id,
+            itype: DbItemType::Transaction,
+            value: DbItemTypeE::Transaction((id, trans).into()),
         }
     }
 }

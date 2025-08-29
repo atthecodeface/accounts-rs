@@ -49,21 +49,7 @@ impl Account {
 
     //mp transactions_between_dates
     pub fn transactions_between_dates(&self, start: Date, end: Date) -> Vec<DbId> {
-        let (mut c, _) = self.transactions.cursor_of_date(start, true);
-        let mut result = vec![];
-        loop {
-            let Some(date) = self.transactions.cursor_date(&c) else {
-                break;
-            };
-            if date >= end {
-                break;
-            }
-            result.push(self.transactions[c]);
-            if !self.transactions.cursor_next(&mut c) {
-                break;
-            }
-        }
-        result
+        self.transactions.transactions_between_dates(start, end)
     }
 
     //mp validate_transactions

@@ -91,6 +91,19 @@ where
     }
 }
 
+//ip Index<Date> for OrderedTransactions
+impl<T> std::ops::Index<Date> for OrderedTransactions<T>
+where
+    T: OrderedTransactionId,
+{
+    type Output = [T];
+    #[track_caller]
+    fn index(&self, date: Date) -> &[T] {
+        &self.transactions_by_date[self.transactions_by_date.find_key(&date).unwrap()].1
+    }
+}
+
+//tp OrderedTransactionsIter
 pub struct OrderedTransactionsIter<'a, T>
 where
     T: OrderedTransactionId,
@@ -98,6 +111,8 @@ where
     transactions: &'a OrderedTransactions<T>,
     cursor: OTCursor,
 }
+
+//ip Iterator for OrderedTransactionsIter
 impl<'a, T> Iterator for OrderedTransactionsIter<'a, T>
 where
     T: OrderedTransactionId,
@@ -151,6 +166,25 @@ where
         self.sort();
     }
 
+    //mp transactions_between_dates
+    pub fn transactions_between_dates(&self, start: Date, end: Date) -> Vec<T> {
+        let (mut c, _) = self.cursor_of_date(start, true);
+        let mut result = vec![];
+        loop {
+            let Some(date) = self.cursor_date(&c) else {
+                break;
+            };
+            if date >= end {
+                break;
+            }
+            result.push(self[c]);
+            if !self.cursor_next(&mut c) {
+                break;
+            }
+        }
+        result
+    }
+
     //mp push_to_date
     pub fn push_to_date(&mut self, date: Date, item: T) {
         let (found, ot_d) = self
@@ -170,6 +204,14 @@ where
     //ap contains_date
     pub fn contains_date(&self, date: Date) -> bool {
         self.transactions_by_date.contains(&date)
+    }
+    //ap of_date
+    pub fn of_date(&self, date: Date) -> Option<&[T]> {
+        if let Some(idx) = self.transactions_by_date.find_key(&date) {
+            Some(&self.transactions_by_date[idx].1)
+        } else {
+            None
+        }
     }
 
     //mp cursor_prev

@@ -47,31 +47,11 @@ pub use ordered::{OTCursor, OTIndex, OrderedTransactions};
 mod amount;
 pub use amount::Amount;
 
-mod related_parties;
-pub use related_parties::RelatedParties;
-
-mod related_party;
-pub use related_party::{
-    DbRelatedParties, DbRelatedParty, RelatedParty, RelatedPartyQuery, RelatedPartyType,
-};
-
-mod receivables;
-
 mod account_desc;
 pub use account_desc::AccountDesc;
 
-mod account;
-pub use account::{Account, DbAccount, DbAccounts};
-
-mod bank_transaction;
-pub use bank_transaction::{
-    BankTransaction, BankTransactionType, DbBankTransaction, DbBankTransactions,
-};
-
-// mod invoices;
-// mod account_transactions;
-
-pub mod banks;
+mod related_parties;
+pub use related_parties::RelatedParties;
 
 mod db_id;
 pub use db_id::DbId;
@@ -82,6 +62,32 @@ pub use db_vec::DbVec;
 #[macro_use]
 mod db_item;
 pub use db_item::{DbItem, DbItemKind, DbItemType};
+
+mod related_party;
+pub use related_party::{
+    DbRelatedParties, DbRelatedParty, RelatedParty, RelatedPartyQuery, RelatedPartyType,
+};
+
+mod fund;
+pub use fund::{DbFund, DbFunds, Fund};
+
+mod account;
+pub use account::{Account, DbAccount, DbAccounts};
+
+mod bank_transaction;
+pub use bank_transaction::{
+    BankTransaction, BankTransactionType, DbBankTransaction, DbBankTransactions,
+};
+
+mod transaction;
+pub use transaction::{DbTransaction, DbTransactions, Transaction, TransactionType};
+
+mod receivables;
+
+// mod invoices;
+// mod account_transactions;
+
+pub mod banks;
 
 mod database;
 pub use database::Database;
