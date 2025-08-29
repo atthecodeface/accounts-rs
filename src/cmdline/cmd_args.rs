@@ -12,8 +12,9 @@ pub struct CmdArgs {
     pub db: Database,
     pub verbose: bool,
     pub clear: bool,
-    pub write_format: String,
+    pub file_format: FileFormat,
 
+    pub write_filename: String,
     pub rp_id: Option<usize>,
     pub start_date: Option<Date>,
     pub end_date: Option<Date>,
@@ -84,9 +85,15 @@ impl CmdArgs {
         Ok(())
     }
 
-    //mi set_write_format
-    fn set_write_format(&mut self, s: &str) -> Result<(), Error> {
-        self.write_format = s.into();
+    //mi set_write_filename
+    fn set_write_filename(&mut self, s: &str) -> Result<(), Error> {
+        self.write_filename = s.into();
+        Ok(())
+    }
+
+    //mi set_file_format
+    fn set_file_format(&mut self, s: &str) -> Result<(), Error> {
+        self.file_format = s.parse::<FileFormat>()?;
         Ok(())
     }
 
@@ -152,8 +159,42 @@ impl CmdArgs {
                 self.db = Database::deserialize(&mut deserializer, FileFormat::Array)?;
                 Ok(())
             }
+            FileType::Yaml => {
+                let mut deserializer = serde_yaml::Deserializer::from_str(&s);
+                // Deserialize from Vec<DbItem>
+                self.db = Database::deserialize(deserializer, FileFormat::Array)?;
+                Ok(())
+            }
             _ => Err(Error::FileTypeNotSupported(ftype, "database")),
         }
+    }
+}
+
+//ip CmdArgs - operations
+impl CmdArgs {
+    pub fn write_database(&self) -> Result<(), Error> {
+        let ftype = FileType::from_filename(&self.write_filename)?;
+
+        // use self.file_format
+
+        let mut w = vec![];
+        match ftype {
+            FileType::Json => {
+                let mut s = serde_json::Serializer::pretty(w);
+                self.db.serialize_as_array(&mut s)?;
+                w = s.into_inner();
+            }
+            FileType::Yaml => {
+                let mut s = serde_yaml::Serializer::new(&mut w);
+                self.db.serialize_as_array(&mut s)?;
+            }
+            _ => return Err("Cannot write database out as CSV fle".to_string().into()),
+        }
+        use std::io::Write;
+        let s = std::str::from_utf8(&w).unwrap();
+        let mut f = std::fs::File::create(&self.write_filename)?;
+        f.write(s.as_bytes())?;
+        Ok(())
     }
 }
 
@@ -169,15 +210,15 @@ impl CmdArgs {
     }
 
     //ap get_date_range
-    pub fn get_date_range(&self) -> Result<(Date, Date), Error> {
+    pub fn get_date_range(&self) -> Option<(Date, Date)> {
         if let Some(start_date) = self.start_date {
             if let Some(end_date) = self.end_date {
-                Ok((start_date, end_date))
+                Some((start_date, end_date))
             } else {
-                Ok((start_date, start_date.plus_days(1)))
+                Some((start_date, Date::default()))
             }
         } else {
-            Err("No date supplied".to_string().into())
+            None
         }
     }
 
@@ -428,15 +469,27 @@ impl CmdArgs {
         );
     }
 
-    //fp arg_add_write_format
-    pub fn arg_add_write_format(builder: &mut CommandBuilder<Self>) {
+    //fp arg_add_file_format
+    pub fn arg_add_file_format(builder: &mut CommandBuilder<Self>) {
         builder.add_arg_string(
             "format",
             Some('f'),
             "Format to write",
             false,
             None,
-            Self::set_write_format,
+            Self::set_file_format,
+        );
+    }
+
+    //fp arg_add_write_filename
+    pub fn arg_add_write_filename(builder: &mut CommandBuilder<Self>) {
+        builder.add_arg_string(
+            "output_filename",
+            Some('w'),
+            "Output filename",
+            false,
+            None,
+            Self::set_write_filename,
         );
     }
 }

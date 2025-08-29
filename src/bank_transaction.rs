@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::Idx;
 use crate::Error;
-use crate::{AccountDesc, Amount, Date, DbId};
+use crate::{AccountDesc, Amount, DatabaseRebuild, Date, DbId};
 
 //a BankTransactionType
 //tp BankTransactionType
@@ -152,6 +152,17 @@ impl BankTransaction {
     pub fn set_account_id(&mut self, account_id: DbId) {
         self.account_id = account_id;
     }
+
+    //mp rebuild
+    pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
+        if !self.related_party.is_none() {
+            self.related_party =
+                database_rebuild.get_new_id("BankTransaction related party", self.related_party)?;
+        }
+        self.account_id =
+            database_rebuild.get_new_id("BankTransaction account ID", self.account_id)?;
+        Ok(())
+    }
 }
 
 //tp DbBankTransaction
@@ -182,17 +193,22 @@ impl DbBankTransactions {
         self.state.borrow().array.iter().map(|db| db.id()).collect()
     }
 
+    //mp rebuild_add_bank_transaction
+    pub fn rebuild_add_bank_transaction(
+        &self,
+        db_bank_transaction: DbBankTransaction,
+        database_rebuild: &DatabaseRebuild,
+    ) -> Result<(), Error> {
+        if !self.add_transaction(db_bank_transaction.clone()) {
+            return Err(format!("Failed to rebuild bank transaction, already present?").into());
+        }
+        db_bank_transaction.inner_mut().rebuild(database_rebuild)
+    }
+
     //mp add_transaction
     pub fn add_transaction(&self, db_transaction: DbBankTransaction) -> bool {
-        // if self.has_transaction(&db_transaction.inner().description()) {
-        // return false;
-        // }
         let mut state = self.state.borrow_mut();
         state.array.push(db_transaction.clone());
-        // state.index.insert(
-        //            db_transaction.inner().description().to_string(),
-        // db_transaction.clone(),
-        // );
         true
     }
 

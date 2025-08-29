@@ -3,7 +3,7 @@ use clap::Command;
 use thunderclap::CommandBuilder;
 
 use crate::cmdline::CmdArgs;
-use crate::Error;
+use crate::{Date, Error};
 
 //a Accounts
 //a Write
@@ -49,7 +49,9 @@ fn validate_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
 //mi transactions_fn
 fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let name = &cmd_args.string_args[0];
-    let (start, end) = cmd_args.get_date_range()?;
+    let (start, end) = cmd_args
+        .get_date_range()
+        .unwrap_or((Date::of_dmy(1, 1, 2020), Date::of_dmy(1, 1, 2099)));
     let db_acc = cmd_args.get_account(name)?;
 
     let transactions = db_acc.inner().transactions_between_dates(start, end);

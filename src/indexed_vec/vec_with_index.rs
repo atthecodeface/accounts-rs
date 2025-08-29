@@ -146,6 +146,18 @@ where
     }
 }
 
+//ip VecWithIndex Mut
+impl<'vwi, K, I, D> VecWithIndex<'vwi, K, I, D, true>
+where
+    K: IndexKey<'vwi>,
+    I: Idx + 'vwi,
+{
+    //mp iter_mut
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut D> {
+        self.array.iter_mut()
+    }
+}
+
 //ip VecWithIndex
 impl<'vwi, K, I, D, const M: bool> VecWithIndex<'vwi, K, I, D, M>
 where

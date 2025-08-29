@@ -139,6 +139,7 @@ where
     pub fn get_mut(&mut self, index: I) -> Option<&mut T> {
         self.as_mut_slice().get_mut(index)
     }
+
     // Could add... pop, insert,
 }
 
@@ -201,7 +202,7 @@ where
     }
 }
 
-//ip DerefMut for IndexedVec
+//ip DerefMut for IndexedVec mutable
 impl<I, T> std::ops::DerefMut for IndexedVec<I, T, true>
 where
     I: Idx,

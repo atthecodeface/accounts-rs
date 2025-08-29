@@ -3,17 +3,17 @@ use clap::Command;
 use thunderclap::CommandBuilder;
 
 use crate::cmdline::CmdArgs;
-use crate::{Error, RelatedParty};
+use crate::{Error, Fund};
 
 //a Funds
 //fi list_fn
 fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     println!("Funds:");
-    for k in cmd_args.db.related_parties().db_ids() {
-        let fund = cmd_args.db.get(k).unwrap().related_party().unwrap();
+    for k in cmd_args.db.funds().db_ids() {
+        let fund = cmd_args.db.get(k).unwrap().fund().unwrap();
         let fund = fund.borrow();
-        println!("  {k} : {} - {}", fund.rp_id(), fund.name());
-        for d in fund.account_descrs() {
+        println!("  {k} : {} - {}", fund.name(), fund.desc());
+        for d in fund.aliases() {
             println!("      {d}");
         }
     }
@@ -23,10 +23,10 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
 //fi add_fn
 fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let name = &cmd_args.string_args[0];
-    let fund_id = cmd_args.rp_id.unwrap();
+    let description = &cmd_args.string_args[1];
 
-    let fund = RelatedParty::new(name.into(), fund_id);
-    let db_id = cmd_args.db.add_related_party(fund);
+    let fund = Fund::new(name, description);
+    let db_id = cmd_args.db.add_fund(fund);
     Ok(format!("DbId{db_id}"))
 }
 
@@ -54,9 +54,9 @@ fn list_cmd() -> CommandBuilder<CmdArgs> {
 
 //mi add_cmd
 fn add_cmd() -> CommandBuilder<CmdArgs> {
-    let mut add = CommandBuilder::with_handler(Command::new("add").about("Add an fund"), add_fn);
-    CmdArgs::arg_add_option_string(&mut add, "name", None, "Fund name", None);
-    CmdArgs::arg_add_option_rp_id(&mut add, true);
+    let mut add = CommandBuilder::with_handler(Command::new("add").about("Add a fund"), add_fn);
+    CmdArgs::arg_add_positional_string(&mut add, "name", "Fund name", Some(1), None);
+    CmdArgs::arg_add_positional_string(&mut add, "description", "Description", Some(1), None);
     add
 }
 

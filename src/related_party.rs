@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{Date, DbId};
+use crate::{DatabaseRebuild, Date, DbId, Error, OrderedTransactions};
 
 //a RelatedPartyType, RelatedPartyQuery
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, Hash, PartialEq, Eq)]
@@ -26,7 +26,7 @@ pub enum RelatedPartyQuery {
 
 //a RelatedParty
 //tp RelatedParty
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct RelatedParty {
     name: String,
     rp_id: usize,
@@ -40,7 +40,7 @@ pub struct RelatedParty {
     last_gift_aid: Option<Date>,
     account_descrs: Vec<String>,
     aliases: Vec<String>,
-    invoices: Vec<DbId>,
+    invoices: OrderedTransactions<DbId>,
 }
 
 //ip RelatedParty
@@ -152,6 +152,11 @@ impl RelatedParty {
     pub fn last_gift_aid(&self) -> Option<&Date> {
         self.last_gift_aid.as_ref()
     }
+
+    //mp rebuild
+    pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
+        self.invoices.rebuild(database_rebuild)
+    }
 }
 
 //tp DbRelatedParty
@@ -200,6 +205,18 @@ impl DbRelatedParties {
             .collect()
     }
 
+    //mp rebuild_add_related_party
+    pub fn rebuild_add_related_party(
+        &self,
+        db_related_party: DbRelatedParty,
+        database_rebuild: &DatabaseRebuild,
+    ) -> Result<(), Error> {
+        if !self.add_related_party(db_related_party.clone()) {
+            return Err(format!("Failed to rebuild related party, already present?").into());
+        }
+        db_related_party.inner_mut().rebuild(database_rebuild)
+    }
+
     //mp add_related_party
     pub fn add_related_party(&self, db_related_party: DbRelatedParty) -> bool {
         if self.has_rp_id(db_related_party.inner().rp_id) {
@@ -224,6 +241,7 @@ impl DbRelatedParties {
             db_related_party.inner().name().to_string(),
             db_related_party.clone(),
         );
+        drop(state);
         self.add_related_party_aliases(&db_related_party);
         true
     }

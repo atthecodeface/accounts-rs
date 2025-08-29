@@ -1,4 +1,5 @@
 //a Imports
+use chrono::{DateTime, Datelike, NaiveDate, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
@@ -39,8 +40,9 @@ impl FileType {
 }
 
 //a FileFormat
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileFormat {
+    #[default]
     Array,
     Dictionary,
 }
@@ -121,8 +123,9 @@ impl Date {
     }
 
     //cp parse
+    #[must_use]
     pub fn parse(s: &str, _us_dm: bool) -> Result<Self, Error> {
-        if let Ok(date) = chrono::NaiveDate::parse_from_str(s, "%d/%m/%Y") {
+        if let Ok(date) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
             let timestamp = date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as usize;
             Ok(Self { value: timestamp })
         } else {
@@ -131,8 +134,9 @@ impl Date {
     }
 
     //cp parse_user
+    #[must_use]
     pub fn parse_user(s: &str) -> Result<Self, Error> {
-        if let Ok(date) = chrono::NaiveDate::parse_from_str(s, "%d/%m/%Y") {
+        if let Ok(date) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
             let timestamp = date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as usize;
             Ok(Self { value: timestamp })
         } else {
@@ -140,17 +144,25 @@ impl Date {
         }
     }
 
-    //cp plus_days
+    //mp plus_days
+    #[must_use]
     pub fn plus_days(&self, n: usize) -> Self {
         let value = self.value + 24 * 60 * 60 * n;
+
+        Self { value }
+    }
+
+    //cp of_dmy
+    #[track_caller]
+    pub fn of_dmy(day: u32, month: u32, year: i32) -> Self {
+        let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
+        let value = Utc.from_utc_datetime(&date.into()).timestamp() as usize;
         Self { value }
     }
 
     //ap dmy
     pub fn dmy(&self) -> (u32, u32, i32) {
-        use chrono::Datelike;
-        let date_time =
-            chrono::DateTime::<chrono::Utc>::from_timestamp(self.value as i64, 0).unwrap();
+        let date_time = DateTime::<Utc>::from_timestamp(self.value as i64, 0).unwrap();
         let date = date_time.naive_utc().date();
         (date.day(), date.month(), date.year())
     }
@@ -159,8 +171,7 @@ impl Date {
 //ip std::fmt::Display for Date
 impl std::fmt::Display for Date {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let date_time =
-            chrono::DateTime::<chrono::Utc>::from_timestamp(self.value as i64, 0).unwrap();
+        let date_time = DateTime::<Utc>::from_timestamp(self.value as i64, 0).unwrap();
         write!(fmt, "{}", date_time.format("%d/%m/%Y"),)
     }
 }

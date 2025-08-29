@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::{Idx, VecWithIndex};
 use crate::make_index;
-use crate::Date;
+use crate::{DatabaseRebuild, Date, DbId, Error};
 
 //a OrderedTransactionId
 //tt OrderedTransactionId
@@ -364,6 +364,19 @@ where
                 }
             }
         }
+    }
+}
+
+//ip OrderedTransactions<DbId>
+impl OrderedTransactions<DbId> {
+    //mp rebuild
+    pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
+        for d in self.transactions_by_date.iter_mut() {
+            for t in d.1.iter_mut() {
+                *t = database_rebuild.get_new_id("OrderedTransactions", *t)?;
+            }
+        }
+        Ok(())
     }
 }
 

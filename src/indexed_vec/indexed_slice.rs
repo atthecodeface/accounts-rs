@@ -77,6 +77,13 @@ where
     pub fn get_mut(&mut self, index: I) -> Option<&mut T> {
         self.slice.get_mut(index.index())
     }
+
+    //ap iter_mut
+    /// Get a iterator over references to our values.
+    #[inline]
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.slice.iter_mut()
+    }
 }
 
 //ip IndexedSlice
@@ -116,7 +123,7 @@ where
         self.slice.len()
     }
 
-    //ap len
+    //ap len_idx
     /// Returns the length of the wrapped slice as an `I`.
     #[inline]
     pub fn len_idx(&self) -> I {

@@ -5,7 +5,9 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::Idx;
-use crate::{AccountDesc, BankTransaction, Database, Date, DbId, OrderedTransactions};
+use crate::{
+    AccountDesc, BankTransaction, Database, DatabaseRebuild, Date, DbId, Error, OrderedTransactions,
+};
 
 //a Account
 //tp Account
@@ -159,6 +161,11 @@ impl Account {
             Err(errors)
         }
     }
+
+    //mp rebuild
+    pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
+        self.transactions.rebuild(database_rebuild)
+    }
 }
 
 //tp DbAccount
@@ -197,6 +204,18 @@ impl DbAccounts {
     //mp ids
     pub fn ids(&self) -> Vec<DbId> {
         self.state.borrow().array.iter().map(|db| db.id()).collect()
+    }
+
+    //mp rebuild_add_account
+    pub fn rebuild_add_account(
+        &self,
+        db_account: DbAccount,
+        database_rebuild: &DatabaseRebuild,
+    ) -> Result<(), Error> {
+        if !self.add_account(db_account.clone()) {
+            return Err(format!("Failed to rebuild account, already present?").into());
+        }
+        db_account.inner_mut().rebuild(database_rebuild)
     }
 
     //mp add_account

@@ -5,7 +5,9 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::Idx;
-use crate::{Amount, Database, Date, DbId, DbTransaction, OrderedTransactions};
+use crate::{
+    Amount, Database, DatabaseRebuild, Date, DbId, DbTransaction, Error, OrderedTransactions,
+};
 
 //a Fund
 //tp Fund
@@ -92,6 +94,11 @@ impl Fund {
         self.end_balance = None;
         Ok(())
     }
+
+    //mp rebuild
+    pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
+        self.transactions.rebuild(database_rebuild)
+    }
 }
 
 //tp DbFund
@@ -117,9 +124,22 @@ pub struct DbFunds {
 
 //ip DbFunds
 impl DbFunds {
-    //mp ids
-    pub fn ids(&self) -> Vec<DbId> {
+    //mp db_ids
+    pub fn db_ids(&self) -> Vec<DbId> {
         self.state.borrow().array.iter().map(|db| db.id()).collect()
+    }
+
+    //mp rebuild_add_fund
+    pub fn rebuild_add_fund(
+        &self,
+        db_fund: DbFund,
+        database_rebuild: &DatabaseRebuild,
+    ) -> Result<(), Error> {
+        if !self.add_fund(db_fund.clone()) {
+            return Err(format!("Failed to rebuild fund, already present?").into());
+        }
+        self.add_fund_aliases(&db_fund);
+        db_fund.inner_mut().rebuild(database_rebuild)
     }
 
     //mp add_fund

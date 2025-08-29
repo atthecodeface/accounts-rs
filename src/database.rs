@@ -36,8 +36,61 @@ use crate::RelatedParties;
 use crate::{Account, DbAccounts};
 use crate::{BankTransaction, DbBankTransactions, DbRelatedParties, RelatedParty};
 use crate::{DbFunds, Fund};
-use crate::{DbId, DbItem};
+use crate::{DbId, DbItem, DbItemType};
 use crate::{Error, FileFormat};
+
+//a DatabaseRebuild
+#[derive(Debug, Default)]
+pub struct DatabaseRebuild {
+    old_to_new_id_map: HashMap<DbId, DbId>,
+    new_to_old_id_map: HashMap<DbId, DbId>,
+}
+
+impl DatabaseRebuild {
+    pub fn add_mapping(&mut self, old_id: DbId, new_id: DbId) -> Result<(), Error> {
+        if self.old_to_new_id_map.contains_key(&old_id) {
+            return Err(Error::DuplicateItemId(old_id));
+        }
+        self.old_to_new_id_map.insert(old_id, new_id);
+        self.new_to_old_id_map.insert(new_id, old_id);
+        Ok(())
+    }
+    pub fn get_new_id(&self, reason: &str, old_id: DbId) -> Result<DbId, Error> {
+        let Some(nt) = self.old_to_new_id_map.get(&old_id) else {
+            return Err(format!("No old-to-new Db map entry for {old_id} for {reason}").into());
+        };
+        Ok(*nt)
+    }
+}
+
+//a DatabaseState
+//tp DatabaseState
+#[derive(Default)]
+pub struct DatabaseState {
+    /// Next ID to hand out to an entity
+    next_db_id: DbId,
+
+    /// Hash map from DbId to the individual items
+    items: HashMap<DbId, DbItem>,
+}
+
+//ip DatabaseState
+impl DatabaseState {
+    //mi assign_next_free_db_id
+    fn assign_next_free_db_id(&mut self) -> DbId {
+        loop {
+            let db_id = self.next_db_id;
+            self.next_db_id = self.next_db_id.increment();
+            if db_id.is_none() {
+                continue;
+            }
+            if self.items.contains_key(&db_id) {
+                continue;
+            }
+            return db_id;
+        }
+    }
+}
 
 //a Database
 //tp Database
@@ -67,30 +120,6 @@ use crate::{Error, FileFormat};
 /// other mechanisms for saving (such as export to MySql datatbase, or
 /// sqlite3)
 #[derive(Default)]
-pub struct DatabaseState {
-    /// Next ID to hand out to an entity
-    next_db_id: DbId,
-
-    /// Hash map from DbId to the individual items
-    items: HashMap<DbId, DbItem>,
-}
-impl DatabaseState {
-    //mi assign_next_free_db_id
-    fn assign_next_free_db_id(&mut self) -> DbId {
-        loop {
-            let db_id = self.next_db_id;
-            self.next_db_id = self.next_db_id.increment();
-            if db_id.is_none() {
-                continue;
-            }
-            if self.items.contains_key(&db_id) {
-                continue;
-            }
-            return db_id;
-        }
-    }
-}
-#[derive(Default)]
 pub struct Database {
     /// next_db_id and the items
     state: RefCell<DatabaseState>,
@@ -116,6 +145,40 @@ pub struct Database {
 
 //ip Database
 impl Database {
+    //mp try_rebuild
+    pub fn try_rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
+        let state = self.state.borrow_mut();
+
+        for db_id in state.items.keys() {
+            let item = &state.items[db_id];
+            match item.itype() {
+                DbItemType::Fund => {
+                    self.funds
+                        .rebuild_add_fund(item.fund().unwrap(), database_rebuild)?;
+                }
+                DbItemType::Account => {
+                    self.accounts
+                        .rebuild_add_account(item.account().unwrap(), database_rebuild)?;
+                }
+                DbItemType::RelatedParty => {
+                    self.related_parties.rebuild_add_related_party(
+                        item.related_party().unwrap(),
+                        database_rebuild,
+                    )?;
+                }
+                DbItemType::BankTransaction => {
+                    self.bank_transactions.rebuild_add_bank_transaction(
+                        item.bank_transaction().unwrap(),
+                        database_rebuild,
+                    )?;
+                }
+                _ => (),
+            }
+            // Run through all items - look for transactions, and rebuild the Transactions from the database
+        }
+        Ok(())
+    }
+
     //ap accounts
     pub fn accounts(&self) -> &DbAccounts {
         &self.accounts
@@ -165,6 +228,13 @@ impl Database {
     pub fn add_account(&self, account: Account) -> DbId {
         let (db_id, item) = self.add_item(account);
         self.accounts.add_account(item.account().unwrap());
+        db_id
+    }
+
+    //mp add_fund
+    pub fn add_fund(&self, fund: Fund) -> DbId {
+        let (db_id, item) = self.add_item(fund);
+        self.funds.add_fund(item.fund().unwrap());
         db_id
     }
 
@@ -275,24 +345,15 @@ impl std::convert::TryFrom<Vec<DbItem>> for Database {
         let mut db = Database::default();
         let mut state = DatabaseState::default();
         let mut next_db_id = state.assign_next_free_db_id();
-        let mut old_to_new_id_map = HashMap::new();
-        let mut new_to_old_id_map = HashMap::new();
+        let mut database_rebuild = DatabaseRebuild::default();
         for item in array {
             let old_id = item.id();
-            if old_to_new_id_map.contains_key(&old_id) {
-                return Err(Error::DuplicateItemId(old_id));
-            }
+            database_rebuild.add_mapping(old_id, next_db_id)?;
             state.items.insert(next_db_id, item);
-            old_to_new_id_map.insert(old_id, next_db_id);
-            new_to_old_id_map.insert(next_db_id, old_id);
             next_db_id = state.assign_next_free_db_id();
         }
         db.state = state.into();
-        // Run through all items - look for accounts, and rebuild the Accounts from the database
-        // Run through all items - look for funds, and rebuild the Funds from the database
-        // Run through all items - look for bank_transactions, and rebuild the BankTransactions from the database
-        // Run through all items - look for transactions, and rebuild the Transactions from the database
-        // Run through all items - look for related parties, and rebuild the RelatedParties from the database
+        db.try_rebuild(&database_rebuild)?;
         Ok(db)
     }
 }
