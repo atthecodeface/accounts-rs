@@ -13,6 +13,7 @@ pub struct CmdArgs {
     pub clear: bool,
     pub write_format: String,
 
+    pub rp_id: Option<usize>,
     pub start_date: Option<Date>,
     pub end_date: Option<Date>,
     pub postcode: Option<String>,
@@ -38,6 +39,7 @@ impl CommandArgs for CmdArgs {
 
         self.clear = false;
 
+        self.rp_id = None;
         self.start_date = None;
         self.end_date = None;
         self.postcode = None;
@@ -60,6 +62,12 @@ impl CmdArgs {
     //mi set_clear
     pub(crate) fn set_clear(&mut self, clear: bool) -> Result<(), Error> {
         self.clear = clear;
+        Ok(())
+    }
+
+    //mi set_rp_id
+    fn set_rp_id(&mut self, rp_id: usize) -> Result<(), Error> {
+        self.rp_id = Some(rp_id);
         Ok(())
     }
 
@@ -310,6 +318,18 @@ impl CmdArgs {
             false,
             None,
             Self::set_end_date,
+        );
+    }
+
+    //fp arg_add_option_rp_id
+    pub fn arg_add_option_rp_id(builder: &mut CommandBuilder<Self>, required: bool) {
+        builder.add_arg_usize(
+            "rp_id",
+            Some('i'),
+            "RP Id - by convention director=1, member number if 100-500, friend if 500-1000, musician if 1000-2000, supplier 2000+",
+            required,
+            None,
+            Self::set_rp_id,
         );
     }
 

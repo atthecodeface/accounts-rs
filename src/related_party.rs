@@ -4,7 +4,6 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::indexed_vec::Idx;
 use crate::{Date, DbId};
 
 //a RelatedPartyType, RelatedPartyQuery

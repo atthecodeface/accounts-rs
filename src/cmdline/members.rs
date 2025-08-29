@@ -3,7 +3,7 @@ use clap::Command;
 use thunderclap::CommandBuilder;
 
 use crate::cmdline::CmdArgs;
-use crate::{Error, RelatedParty, RelatedPartyQuery, RelatedPartyType};
+use crate::{Error, RelatedParty};
 
 //a Members
 //fi list_fn
@@ -23,7 +23,7 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
 //fi add_fn
 fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let name = &cmd_args.string_args[0];
-    let member_id = cmd_args.usize_args[0];
+    let member_id = cmd_args.rp_id.unwrap();
 
     let member = RelatedParty::new(name.into(), member_id);
     let db_id = cmd_args.db.add_related_party(member);
@@ -36,7 +36,6 @@ fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let clear = cmd_args.clear;
 
     let db_m = cmd_args.get_member(name)?; // related_party(name, RelatedPartyQuery::Rp(RelatedPartyType::Member))?;
-    let db_id = db_m.id();
     cmd_args
         .db
         .related_parties()
@@ -60,7 +59,6 @@ fn add_account_descr_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let clear = cmd_args.clear;
 
     let db_m = cmd_args.get_member(name)?;
-    let db_id = db_m.id();
     if clear {
         db_m.inner_mut().clear_account_descr();
     }
@@ -109,13 +107,7 @@ fn list_cmd() -> CommandBuilder<CmdArgs> {
 fn add_cmd() -> CommandBuilder<CmdArgs> {
     let mut add = CommandBuilder::with_handler(Command::new("add").about("Add an member"), add_fn);
     CmdArgs::arg_add_option_string(&mut add, "name", None, "Member name", None);
-    CmdArgs::arg_add_option_usize(
-        &mut add,
-        "member_number",
-        None,
-        "Member number - a positive integer",
-        None,
-    );
+    CmdArgs::arg_add_option_rp_id(&mut add, true);
     add
 }
 

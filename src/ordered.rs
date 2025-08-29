@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::{Idx, VecWithIndex};
 use crate::make_index;
-use crate::{Date, DbId};
+use crate::Date;
 
 //a OrderedTransactionId
 //tt OrderedTransactionId

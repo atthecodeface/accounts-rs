@@ -262,8 +262,7 @@ impl std::convert::TryFrom<Vec<DbItem>> for Database {
     fn try_from(array: Vec<DbItem>) -> Result<Database, Error> {
         let mut db = Database::default();
         let mut state = DatabaseState::default();
-        let mut next_db_id = DbId::default();
-        next_db_id = state.assign_next_free_db_id();
+        let mut next_db_id = state.assign_next_free_db_id();
         let mut old_to_new_id_map = HashMap::new();
         let mut new_to_old_id_map = HashMap::new();
         for item in array {
