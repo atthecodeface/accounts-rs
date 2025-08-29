@@ -136,6 +136,20 @@ impl<T> OrderedTransactions<T>
 where
     T: OrderedTransactionId,
 {
+    //ap len
+    pub fn len(&self) -> usize {
+        let mut len = 0;
+        for d in self.transactions_by_date.iter() {
+            len += d.1.len();
+        }
+        len
+    }
+
+    //ap is_empty
+    pub fn is_empty(&self) -> bool {
+        self.transactions_by_date.is_empty()
+    }
+
     //ap has_undated_transactions
     pub fn has_undated_transactions(&self) -> bool {
         if let Some(first) = self.date_order.first() {

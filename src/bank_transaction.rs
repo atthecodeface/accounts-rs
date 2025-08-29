@@ -82,6 +82,24 @@ pub struct BankTransaction {
     related_party: DbId,
 }
 
+//ip Display for BankTransaction
+impl std::fmt::Display for BankTransaction {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            fmt,
+            "{} : {:4} / {:4} : {:90} : {:8.2} : {:8.2} : {:6.2} : {:6.2} : ",
+            self.date,
+            self.account_id,
+            self.related_party,
+            self.description,
+            self.balance - self.balance_delta(),
+            self.balance,
+            self.debit,
+            self.credit
+        )
+    }
+}
+
 //ip BankTransaction
 impl BankTransaction {
     //cp new
@@ -188,6 +206,14 @@ pub struct DbBankTransactions {
 
 //ip DbBankTransactions
 impl DbBankTransactions {
+    //ap map_nth
+    pub fn map_nth<F, T>(&self, f: F, n: usize) -> Option<T>
+    where
+        F: FnOnce(&DbBankTransaction) -> T,
+    {
+        self.state.borrow().array.get(n).map(f)
+    }
+
     //mp db_ids
     pub fn db_ids(&self) -> Vec<DbId> {
         self.state.borrow().array.iter().map(|db| db.id()).collect()

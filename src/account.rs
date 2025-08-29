@@ -26,6 +26,20 @@ pub struct Account {
     transactions: OrderedTransactions<DbId>,
 }
 
+//ip Display for Account
+impl std::fmt::Display for Account {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            fmt,
+            "Account '{}' with '{}' : {} : with {} transactions",
+            self.name,
+            self.org,
+            self.desc,
+            self.transactions.len()
+        )
+    }
+}
+
 //ip Account
 impl Account {
     //cp new
@@ -195,6 +209,14 @@ impl Default for DbAccounts {
 
 //ip DbAccounts
 impl DbAccounts {
+    //ap map_nth
+    pub fn map_nth<F, T>(&self, f: F, n: usize) -> Option<T>
+    where
+        F: FnOnce(&DbAccount) -> T,
+    {
+        self.state.borrow().array.get(n).map(f)
+    }
+
     //mp ids
     pub fn ids(&self) -> Vec<DbId> {
         self.state.borrow().array.iter().map(|db| db.id()).collect()

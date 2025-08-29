@@ -135,7 +135,7 @@ fn add_account_descr_cmd() -> CommandBuilder<CmdArgs> {
         &mut add_account_desc,
         "description",
         "Account description",
-        Some(0),
+        None,
         None,
     );
     add_account_desc

@@ -37,9 +37,10 @@ impl std::str::FromStr for RelatedPartyType {
 }
 
 //tp RelatedPartyQuery
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum RelatedPartyQuery {
     RpType(RelatedPartyType),
+    #[default]
     Any,
 }
 
@@ -82,6 +83,34 @@ pub struct RelatedParty {
     aliases: Vec<String>,
     transactions: OrderedTransactions<DbId>,
     invoices: OrderedTransactions<DbId>,
+}
+
+//ip Display for RelatedParty
+impl std::fmt::Display for RelatedParty {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(
+            fmt,
+            "Related party: {:?} : {:5} : '{}'",
+            self.rp_type, self.rp_id, self.name
+        )?;
+        if !self.address.is_empty() {
+            writeln!(fmt, "    Address: {}", self.address);
+        }
+        if !self.email.is_empty() {
+            writeln!(fmt, "    Email: {}", self.email);
+        }
+        if !self.telephone.is_empty() {
+            writeln!(fmt, "    Telephone: {}", self.telephone);
+        }
+        if !self.postcode.is_empty() || !self.house_number.is_empty() {
+            writeln!(
+                fmt,
+                "    House: {}   Postcode: {}",
+                self.house_number, self.postcode
+            );
+        }
+        Ok(())
+    }
 }
 
 //ip RelatedParty
@@ -239,6 +268,14 @@ impl Default for DbRelatedParties {
 
 //ip DbRelatedParties
 impl DbRelatedParties {
+    //ap map_nth
+    pub fn map_nth<F, T>(&self, f: F, n: usize) -> Option<T>
+    where
+        F: FnOnce(&DbRelatedParty) -> T,
+    {
+        self.state.borrow().array.get(n).map(f)
+    }
+
     //mp db_ids
     pub fn db_ids(&self) -> Vec<DbId> {
         self.state.borrow().array.iter().map(|db| db.id()).collect()

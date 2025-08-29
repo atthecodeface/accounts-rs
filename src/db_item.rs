@@ -26,16 +26,18 @@
 //a Imports
 use serde::{Deserialize, Serialize};
 
-use crate::DbId;
 use crate::{Account, DbAccount};
 use crate::{BankTransaction, DbBankTransaction};
 use crate::{DbFund, Fund};
+use crate::{DbId, Error};
 use crate::{DbRelatedParty, RelatedParty};
 use crate::{DbTransaction, Transaction};
 
 //a DbItemKind
 //tt trait DbitemKind
-pub trait DbItemKind: Clone + Serialize + for<'a> Deserialize<'a> {
+pub trait DbItemKindObj: std::fmt::Display {}
+impl<T> DbItemKindObj for T where T: std::fmt::Display {}
+pub trait DbItemKind: DbItemKindObj + Clone + Serialize + for<'a> Deserialize<'a> {
     fn id(&self) -> DbId;
     fn itype(&self) -> DbItemType;
 }
@@ -52,6 +54,12 @@ macro_rules! make_db_item {
         pub struct $db_id {
             id : $crate :: DbId,
             inner: std::rc::Rc<std::cell::RefCell<$id>>
+        }
+
+        impl std::fmt::Display for $db_id {
+            fn fmt(&self, fmt:&mut std::fmt::Formatter) -> Result<(),std::fmt::Error> {
+                self.inner.borrow().fmt(fmt)
+            }
         }
 
         impl std::cmp::PartialEq for $db_id {
@@ -114,6 +122,23 @@ pub enum DbItemType {
     RelatedParty,
 }
 
+//ip FromStr for DbItemType
+impl std::str::FromStr for DbItemType {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Error> {
+        match s {
+            "account" => Ok(Self::Account),
+            "fund" => Ok(Self::Fund),
+            "bank_transaction" => Ok(Self::BankTransaction),
+            "transaction" => Ok(Self::Transaction),
+            "related_party" => Ok(Self::RelatedParty),
+            "rp" => Ok(Self::RelatedParty),
+            _ => Err(format!("Unknown db item type {s}").into()),
+        }
+    }
+}
+
+//a DbItemTypeE
 //tp DbItemTypeE
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DbItemTypeE {
@@ -124,6 +149,66 @@ pub enum DbItemTypeE {
     RelatedParty(DbRelatedParty),
 }
 
+//ip DbItemTypeE
+impl DbItemTypeE {
+    //ap as_dyn_item_kind
+    pub fn as_dyn_item_kind(&self) -> Option<&dyn DbItemKindObj> {
+        match self {
+            DbItemTypeE::Account(d) => Some(d),
+            DbItemTypeE::Fund(d) => Some(d),
+            DbItemTypeE::RelatedParty(d) => Some(d),
+            DbItemTypeE::BankTransaction(d) => Some(d),
+            DbItemTypeE::Transaction(d) => Some(d),
+            _ => None,
+        }
+    }
+
+    //ap account
+    pub fn account(&self) -> Option<DbAccount> {
+        if let DbItemTypeE::Account(account) = &self {
+            Some(account.clone())
+        } else {
+            None
+        }
+    }
+
+    //ap fund
+    pub fn fund(&self) -> Option<DbFund> {
+        if let DbItemTypeE::Fund(fund) = &self {
+            Some(fund.clone())
+        } else {
+            None
+        }
+    }
+
+    //ap related_party
+    pub fn related_party(&self) -> Option<DbRelatedParty> {
+        if let DbItemTypeE::RelatedParty(related_party) = &self {
+            Some(related_party.clone())
+        } else {
+            None
+        }
+    }
+
+    //ap bank_transaction
+    pub fn bank_transaction(&self) -> Option<DbBankTransaction> {
+        if let DbItemTypeE::BankTransaction(bank_transaction) = &self {
+            Some(bank_transaction.clone())
+        } else {
+            None
+        }
+    }
+
+    //ap transaction
+    pub fn transaction(&self) -> Option<DbTransaction> {
+        if let DbItemTypeE::Transaction(transaction) = &self {
+            Some(transaction.clone())
+        } else {
+            None
+        }
+    }
+}
+
 //a DbItem
 //tp DbItem
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,6 +216,17 @@ pub struct DbItem {
     id: DbId,
     itype: DbItemType,
     value: DbItemTypeE,
+}
+
+//ip Display for DbItem
+impl std::fmt::Display for DbItem {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        if let Some(v) = self.value.as_dyn_item_kind() {
+            v.fmt(fmt)
+        } else {
+            write!(fmt, "No display for {}", self.id)
+        }
+    }
 }
 
 //ip DbItem
@@ -147,48 +243,39 @@ impl DbItem {
 
     //ap account
     pub fn account(&self) -> Option<DbAccount> {
-        if let DbItemTypeE::Account(account) = &self.value {
-            Some(account.clone())
-        } else {
-            None
-        }
+        self.value.account()
     }
 
     //ap fund
     pub fn fund(&self) -> Option<DbFund> {
-        if let DbItemTypeE::Fund(fund) = &self.value {
-            Some(fund.clone())
-        } else {
-            None
-        }
+        self.value.fund()
     }
 
     //ap related_party
     pub fn related_party(&self) -> Option<DbRelatedParty> {
-        if let DbItemTypeE::RelatedParty(related_party) = &self.value {
-            Some(related_party.clone())
-        } else {
-            None
-        }
+        self.value.related_party()
     }
 
     //ap bank_transaction
     pub fn bank_transaction(&self) -> Option<DbBankTransaction> {
-        if let DbItemTypeE::BankTransaction(bank_transaction) = &self.value {
-            Some(bank_transaction.clone())
-        } else {
-            None
-        }
+        self.value.bank_transaction()
     }
 
     //ap transaction
     pub fn transaction(&self) -> Option<DbTransaction> {
-        if let DbItemTypeE::Transaction(transaction) = &self.value {
-            Some(transaction.clone())
+        self.value.transaction()
+    }
+
+    //mp as_json
+    pub fn as_json(&self, pretty: bool) -> Result<String, Error> {
+        if pretty {
+            Ok(serde_json::to_string_pretty(self)?)
         } else {
-            None
+            Ok(serde_json::to_string(self)?)
         }
     }
+
+    //zz All done
 }
 
 //ip From<(DbId, Account)> for DbItem

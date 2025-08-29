@@ -60,6 +60,9 @@ pub use db_id::DbId;
 mod db_item;
 pub use db_item::{DbItem, DbItemKind, DbItemType};
 
+mod db_query;
+pub use db_query::DbQuery;
+
 mod related_party;
 pub use related_party::{
     DbRelatedParties, DbRelatedParty, RelatedParty, RelatedPartyQuery, RelatedPartyType,

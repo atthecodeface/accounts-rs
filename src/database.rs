@@ -32,11 +32,14 @@ use std::collections::HashMap;
 
 use crate::indexed_vec::Idx;
 
+use crate::DbQuery;
 use crate::RelatedParties;
 use crate::{Account, DbAccounts};
-use crate::{BankTransaction, DbBankTransactions, DbRelatedParties, RelatedParty};
+use crate::{BankTransaction, DbBankTransactions};
 use crate::{DbFunds, Fund};
 use crate::{DbId, DbItem, DbItemType};
+use crate::{DbRelatedParties, RelatedParty};
+use crate::{DbTransactions, Transaction};
 use crate::{Error, FileFormat};
 
 //a DatabaseRebuild
@@ -133,14 +136,143 @@ pub struct Database {
     /// All of the related_parties in the database
     related_parties: DbRelatedParties,
 
-    /// All of the related_parties/friends/donors/suppliers in the database
-    /// related_parties: DbRelatedParties,
+    /// All of the bank transactions in the database
+    bank_transactions: DbBankTransactions,
 
     /// All of the transactions in the database
-    bank_transactions: DbBankTransactions,
+    transactions: DbTransactions,
 
     /// Related parties caches
     account_related_parties: RefCell<RelatedParties>,
+}
+
+//tp DatabaseQueryIter<'a>
+pub struct DatabaseQueryIter<'a> {
+    query: DbQuery,
+    accounts: Option<&'a DbAccounts>,
+    funds: Option<&'a DbFunds>,
+    related_parties: Option<&'a DbRelatedParties>,
+    bank_transactions: Option<&'a DbBankTransactions>,
+    transactions: Option<&'a DbTransactions>,
+    index: usize,
+}
+impl<'a> DatabaseQueryIter<'a> {
+    pub fn new(db: &'a Database, query: DbQuery) -> Self {
+        let accounts = {
+            if query.item_type_matches(DbItemType::Account) {
+                Some(&db.accounts)
+            } else {
+                None
+            }
+        };
+
+        let funds = {
+            if query.item_type_matches(DbItemType::Fund) {
+                Some(&db.funds)
+            } else {
+                None
+            }
+        };
+
+        let related_parties = {
+            if query.item_type_matches(DbItemType::RelatedParty) {
+                Some(&db.related_parties)
+            } else {
+                None
+            }
+        };
+
+        let bank_transactions = {
+            if query.item_type_matches(DbItemType::BankTransaction) {
+                Some(&db.bank_transactions)
+            } else {
+                None
+            }
+        };
+
+        let transactions = {
+            if query.item_type_matches(DbItemType::Transaction) {
+                Some(&db.transactions)
+            } else {
+                None
+            }
+        };
+
+        Self {
+            query,
+            accounts,
+            funds,
+            related_parties,
+            bank_transactions,
+            transactions,
+            index: 0,
+        }
+    }
+}
+
+//ip Iterator for DatabaseQueryIter
+impl<'a> std::iter::Iterator for DatabaseQueryIter<'a> {
+    type Item = DbId;
+    fn next(&mut self) -> Option<DbId> {
+        loop {
+            let opt_opt_db_id = {
+                if let Some(accounts) = self.accounts {
+                    accounts.map_nth(
+                        |d| self.query.matches_account(d).then(|| d.id()),
+                        self.index,
+                    )
+                } else if let Some(funds) = self.funds {
+                    funds.map_nth(|d| self.query.matches_fund(d).then(|| d.id()), self.index)
+                } else if let Some(related_parties) = self.related_parties {
+                    related_parties.map_nth(
+                        |d| self.query.matches_related_party(d).then(|| d.id()),
+                        self.index,
+                    )
+                } else if let Some(transactions) = self.transactions {
+                    transactions.map_nth(
+                        |d| self.query.matches_transaction(d).then(|| d.id()),
+                        self.index,
+                    )
+                } else if let Some(bank_transactions) = self.bank_transactions {
+                    bank_transactions.map_nth(
+                        |d| self.query.matches_bank_transaction(d).then(|| d.id()),
+                        self.index,
+                    )
+                } else {
+                    None
+                }
+            };
+            if let Some(opt_db_id) = opt_opt_db_id {
+                self.index += 1;
+                if opt_db_id.is_some() {
+                    return opt_db_id;
+                }
+                continue;
+            }
+            self.index = 0;
+            if self.accounts.is_some() {
+                self.accounts = None;
+                continue;
+            }
+            if self.funds.is_some() {
+                self.funds = None;
+                continue;
+            }
+            if self.related_parties.is_some() {
+                self.related_parties = None;
+                continue;
+            }
+            if self.bank_transactions.is_some() {
+                self.bank_transactions = None;
+                continue;
+            }
+            if self.transactions.is_some() {
+                self.transactions = None;
+                continue;
+            }
+            return None;
+        }
+    }
 }
 
 //ip Database
@@ -204,6 +336,11 @@ impl Database {
         self.state.borrow().items.get(&id).cloned()
     }
 
+    //mp query
+    pub fn query(&self, query: DbQuery) -> DatabaseQueryIter {
+        DatabaseQueryIter::new(&self, query)
+    }
+
     //mi add_item
     fn add_item<I>(&self, item: I) -> (DbId, DbItem)
     where
@@ -239,16 +376,15 @@ impl Database {
     }
 
     //mp add_bank_transaction
+    /// The bank transaction must *already* have been added to db.bank_transactions
     pub fn add_bank_transaction(&self, bank_transaction: BankTransaction) -> DbId {
         let (db_id, item) = self.add_item(bank_transaction);
-        self.bank_transactions
-            .add_transaction(item.bank_transaction().unwrap());
         db_id
     }
 
     //mp clear_account_related_parties
     pub fn clear_account_related_parties(&self) {
-        *self.account_related_parties.borrow_mut() = RelatedParties::new(6, 16, 4);
+        *self.account_related_parties.borrow_mut() = RelatedParties::new(6, 12, 3);
     }
 
     //mp find_account_related_party

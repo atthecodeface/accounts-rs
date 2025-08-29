@@ -24,10 +24,9 @@ impl RelatedPartiesCache {
         }
     }
     fn inserty_do(&mut self, db_id: DbId, descr: &str) {
-        dbg!(&db_id);
         if descr.len() < self.descr_len {
             panic!(
-                "item {db_id} has descriptor that is too short < {}",
+                "item {db_id} has descriptor {descr} that is too short < {}",
                 self.descr_len
             );
         }
@@ -35,7 +34,6 @@ impl RelatedPartiesCache {
         if let Some(collision) = self.parties.get_mut(key) {
             *collision = DbId::none();
         } else {
-            dbg!(&key);
             self.parties.insert(key.to_vec(), db_id);
         }
     }

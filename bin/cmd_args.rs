@@ -4,7 +4,7 @@ use thunderclap::{CommandArgs, CommandBuilder};
 use rust_accounts::RelatedPartyQuery;
 use rust_accounts::RelatedPartyType;
 use rust_accounts::{Database, Date, Error, FileFormat, FileType};
-use rust_accounts::{DbAccount, DbFund, DbRelatedParty};
+use rust_accounts::{DbAccount, DbFund, DbItemType, DbRelatedParty};
 
 //a CmdArgs
 //tp CmdArgs
@@ -16,6 +16,7 @@ pub struct CmdArgs {
     pub file_format: FileFormat,
 
     pub write_filename: String,
+    pub item_type: Option<DbItemType>,
     pub rp_id: Option<usize>,
     pub rp_type: Option<RelatedPartyType>,
     pub start_date: Option<Date>,
@@ -26,6 +27,9 @@ pub struct CmdArgs {
     pub email: Option<String>,
     pub telephone: Option<String>,
     pub tax_name: Option<String>,
+    pub name: Option<String>,
+    pub desc: Option<String>,
+    pub id: Option<usize>,
     pub string_args: Vec<String>,
     pub usize_args: Vec<usize>,
 }
@@ -43,6 +47,8 @@ impl CommandArgs for CmdArgs {
 
         self.clear = false;
 
+        self.id = None;
+        self.name = None;
         self.rp_id = None;
         self.rp_type = None;
         self.start_date = None;
@@ -70,6 +76,12 @@ impl CmdArgs {
         Ok(())
     }
 
+    //mi set_item_type
+    fn set_item_type(&mut self, item_type: &str) -> Result<(), Error> {
+        self.item_type = Some(item_type.parse::<DbItemType>()?);
+        Ok(())
+    }
+
     //mi set_rp_type
     fn set_rp_type(&mut self, rp_type: &str) -> Result<(), Error> {
         self.rp_type = Some(rp_type.parse::<RelatedPartyType>()?);
@@ -79,6 +91,24 @@ impl CmdArgs {
     //mi set_rp_id
     fn set_rp_id(&mut self, rp_id: usize) -> Result<(), Error> {
         self.rp_id = Some(rp_id);
+        Ok(())
+    }
+
+    //mi set_id
+    fn set_id(&mut self, id: usize) -> Result<(), Error> {
+        self.id = Some(id);
+        Ok(())
+    }
+
+    //mi set_name
+    fn set_name(&mut self, s: &str) -> Result<(), Error> {
+        self.name = Some(s.into());
+        Ok(())
+    }
+
+    //mi set_desc
+    fn set_desc(&mut self, s: &str) -> Result<(), Error> {
+        self.desc = Some(s.into());
         Ok(())
     }
 
@@ -305,6 +335,35 @@ impl CmdArgs {
         );
     }
 
+    //fp arg_add_option_search_name
+    pub fn arg_add_option_search_name(builder: &mut CommandBuilder<Self>) {
+        builder.add_arg_string(
+            "name",
+            None,
+            "Name to search for (possibly a regex)",
+            false,
+            None,
+            Self::set_name,
+        );
+    }
+
+    //fp arg_add_option_search_desc
+    pub fn arg_add_option_search_desc(builder: &mut CommandBuilder<Self>) {
+        builder.add_arg_string(
+            "desc",
+            None,
+            "Description to search for (possibly a regex)",
+            false,
+            None,
+            Self::set_desc,
+        );
+    }
+
+    //fp arg_add_option_search_id
+    pub fn arg_add_option_search_id(builder: &mut CommandBuilder<Self>) {
+        builder.add_arg_usize("id", None, "Id to look for", false, None, Self::set_id);
+    }
+
     //fp arg_add_option_postcode
     pub fn arg_add_option_postcode(builder: &mut CommandBuilder<Self>) {
         builder.add_arg_string(
@@ -394,6 +453,18 @@ impl CmdArgs {
         );
     }
 
+    //fp arg_add_option_item_type
+    pub fn arg_add_option_item_type(builder: &mut CommandBuilder<Self>, required: bool) {
+        builder.add_arg_string(
+            "item_type",
+            None,
+            "Item type: fund/account/transaction/bank_transaction/related_party/invoice",
+            required,
+            None,
+            Self::set_item_type,
+        );
+    }
+
     //fp arg_add_option_rp_id
     pub fn arg_add_option_rp_id(builder: &mut CommandBuilder<Self>, required: bool) {
         builder.add_arg_usize(
@@ -467,6 +538,26 @@ impl CmdArgs {
             (count, true),
             default_value,
             Self::push_string_arg,
+        );
+    }
+
+    //fp arg_add_positional_usize
+    /// count should be None for optional; Some(0) for a single
+    /// optional argument, Some(n) for a required number
+    pub fn arg_add_positional_usize(
+        builder: &mut CommandBuilder<Self>,
+        tag: &'static str,
+        help: &'static str,
+        count: Option<usize>,
+        default_value: Option<&'static str>,
+    ) {
+        builder.add_arg_usize(
+            tag,
+            None,
+            help,
+            (count, true),
+            default_value,
+            Self::push_usize_arg,
         );
     }
 

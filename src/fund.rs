@@ -4,9 +4,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{
-    Amount, DatabaseRebuild, Date, DbId, DbTransaction, Error, OrderedTransactions,
-};
+use crate::{Amount, DatabaseRebuild, Date, DbId, DbTransaction, Error, OrderedTransactions};
 
 //a Fund
 //tp Fund
@@ -27,6 +25,12 @@ pub struct Fund {
     end_balance: Option<Amount>,
 }
 
+//ip Display for Fund
+impl std::fmt::Display for Fund {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        std::fmt::Debug::fmt(self, fmt)
+    }
+}
 //ip Fund
 impl Fund {
     //cp new
@@ -118,6 +122,14 @@ pub struct DbFunds {
 
 //ip DbFunds
 impl DbFunds {
+    //ap map_nth
+    pub fn map_nth<F, T>(&self, f: F, n: usize) -> Option<T>
+    where
+        F: FnOnce(&DbFund) -> T,
+    {
+        self.state.borrow().array.get(n).map(f)
+    }
+
     //mp db_ids
     pub fn db_ids(&self) -> Vec<DbId> {
         self.state.borrow().array.iter().map(|db| db.id()).collect()

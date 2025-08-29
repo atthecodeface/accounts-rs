@@ -9,6 +9,7 @@ mod accounts;
 mod banks;
 mod funds;
 mod members;
+mod query;
 mod related_parties;
 mod write;
 
@@ -28,6 +29,7 @@ pub fn main() -> Result<(), rust_accounts::Error> {
     build.add_subcommand(members::members_cmd());
     build.add_subcommand(related_parties::related_parties_cmd());
     build.add_subcommand(write::write_cmd());
+    build.add_subcommand(query::query_cmd());
 
     let mut cmd_args = CmdArgs::default();
     let mut command = build.main(true, true);

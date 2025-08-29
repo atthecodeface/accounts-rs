@@ -43,6 +43,13 @@ pub struct Transaction {
     notes: Vec<String>,
 }
 
+//ip Display for Transaction
+impl std::fmt::Display for Transaction {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        std::fmt::Debug::fmt(self, fmt)
+    }
+}
+
 //ip Transaction
 impl Transaction {
     //cp new
@@ -122,6 +129,14 @@ pub struct DbTransactions {
 
 //ip DbTransactions
 impl DbTransactions {
+    //ap map_nth
+    pub fn map_nth<F, T>(&self, f: F, n: usize) -> Option<T>
+    where
+        F: FnOnce(&DbTransaction) -> T,
+    {
+        self.state.borrow().array.get(n).map(f)
+    }
+
     //mp db_ids
     pub fn db_ids(&self) -> Vec<DbId> {
         self.state.borrow().array.iter().map(|db| db.id()).collect()
