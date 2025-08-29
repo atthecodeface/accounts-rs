@@ -33,7 +33,7 @@ use std::collections::HashMap;
 use crate::indexed_vec::Idx;
 
 use crate::{Account, DbAccounts, RelatedParties};
-use crate::{BankTransaction, DbBankTransactions, DbMembers, DbRelatedParties, Member};
+use crate::{BankTransaction, DbBankTransactions, DbMembers, Member};
 use crate::{DbId, DbItem};
 use crate::{Error, FileFormat};
 
@@ -97,8 +97,8 @@ pub struct Database {
     /// All of the members in the database
     members: DbMembers,
 
-    /// All of the accounts in the database
-    related_parties: DbRelatedParties,
+    /// All of the members/friends/donors/suppliers in the database
+    /// related_parties: DbRelatedParties,
 
     /// All of the transactions in the database
     bank_transactions: DbBankTransactions,
