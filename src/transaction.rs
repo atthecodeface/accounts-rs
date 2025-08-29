@@ -33,9 +33,9 @@ pub struct Transaction {
     date: Date,
     /// CSV Transaction Type,
     ttype: TransactionType,
-    /// Debit side of transaction
+    /// Debit side of transaction (could be Fund, BankTransaction, RelatedParty)
     debit_id: DbId,
-    /// Credit side of transaction
+    /// Credit side of transaction (could be Fund, BankTransaction, RelatedParty)
     credit_id: DbId,
     /// Amount of a debit
     amount: Amount,

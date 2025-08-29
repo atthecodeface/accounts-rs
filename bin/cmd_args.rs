@@ -2,6 +2,7 @@
 use thunderclap::{CommandArgs, CommandBuilder};
 
 use rust_accounts::RelatedPartyQuery;
+use rust_accounts::RelatedPartyType;
 use rust_accounts::{Database, Date, Error, FileFormat, FileType};
 use rust_accounts::{DbAccount, DbFund, DbRelatedParty};
 
@@ -16,6 +17,7 @@ pub struct CmdArgs {
 
     pub write_filename: String,
     pub rp_id: Option<usize>,
+    pub rp_type: Option<RelatedPartyType>,
     pub start_date: Option<Date>,
     pub end_date: Option<Date>,
     pub postcode: Option<String>,
@@ -42,6 +44,7 @@ impl CommandArgs for CmdArgs {
         self.clear = false;
 
         self.rp_id = None;
+        self.rp_type = None;
         self.start_date = None;
         self.end_date = None;
         self.postcode = None;
@@ -64,6 +67,12 @@ impl CmdArgs {
     //mi set_clear
     pub(crate) fn set_clear(&mut self, clear: bool) -> Result<(), Error> {
         self.clear = clear;
+        Ok(())
+    }
+
+    //mi set_rp_type
+    fn set_rp_type(&mut self, rp_type: &str) -> Result<(), Error> {
+        self.rp_type = Some(rp_type.parse::<RelatedPartyType>()?);
         Ok(())
     }
 
@@ -219,6 +228,19 @@ impl CmdArgs {
             }
         } else {
             None
+        }
+    }
+
+    //ap get_related_party
+    pub fn get_related_party(&self, name: &str) -> Result<DbRelatedParty, Error> {
+        if let Some(db_m) = self
+            .db
+            .related_parties()
+            .get_party(name, RelatedPartyQuery::Any)
+        {
+            Ok(db_m)
+        } else {
+            Err(format!("Did not find related party '{name}'").into())
         }
     }
 
@@ -381,6 +403,29 @@ impl CmdArgs {
             required,
             None,
             Self::set_rp_id,
+        );
+    }
+
+    //fp arg_add_option_rp_type
+    pub fn arg_add_option_rp_type(builder: &mut CommandBuilder<Self>, required: bool) {
+        builder.add_arg_string(
+            "rp_type",
+            None,
+            "RP type: director/member/friend/muicisan/supplier",
+            required,
+            None,
+            Self::set_rp_type,
+        );
+    }
+
+    //fp arg_add_related_party_positional
+    pub fn arg_add_related_party_positional(builder: &mut CommandBuilder<Self>) {
+        Self::arg_add_positional_string(
+            builder,
+            "name",
+            "Related party identification",
+            Some(1),
+            None,
         );
     }
 

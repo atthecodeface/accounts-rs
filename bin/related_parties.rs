@@ -3,15 +3,21 @@ use clap::Command;
 use thunderclap::CommandBuilder;
 
 use crate::CmdArgs;
-use rust_accounts::{Error, RelatedParty, RelatedPartyType};
+use rust_accounts::{Error, RelatedParty, RelatedPartyQuery};
 
-//a Members
+//a RelatedParties
 //fi list_fn
 fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
-    println!("Members:");
+    let rp_type = cmd_args.rp_type;
+    let rp_query: RelatedPartyQuery = rp_type.into();
+
+    println!("RelatedParties:");
     for k in cmd_args.db.related_parties().db_ids() {
         let member = cmd_args.db.get(k).unwrap().related_party().unwrap();
         let member = member.borrow();
+        if !member.matches_query(&rp_query) {
+            continue;
+        }
         println!("  {k} : {} - {}", member.rp_id(), member.name());
         for d in member.account_descrs() {
             println!("      {d}");
@@ -23,10 +29,11 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
 //fi add_fn
 fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let name = &cmd_args.string_args[0];
-    let member_id = cmd_args.rp_id.unwrap();
+    let rp_id = cmd_args.rp_id.unwrap();
+    let rp_type = cmd_args.rp_type.unwrap();
 
-    let member = RelatedParty::new(name.into(), member_id, RelatedPartyType::Member);
-    let db_id = cmd_args.db.add_related_party(member);
+    let rp = RelatedParty::new(name.into(), rp_id, rp_type);
+    let db_id = cmd_args.db.add_related_party(rp);
     Ok(format!("DbId{db_id}"))
 }
 
@@ -68,12 +75,12 @@ fn add_account_descr_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     Ok("".into())
 }
 
-//fi change_address_fn
-fn change_address_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+//fi change_data_fn
+fn change_data_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let name = &cmd_args.string_args[0];
     let clear = cmd_args.clear;
 
-    let db_m = cmd_args.get_member(name)?;
+    let db_m = cmd_args.get_related_party(name)?;
     if clear {
         db_m.inner_mut().clear_address_info();
     }
@@ -100,25 +107,32 @@ fn change_address_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
 
 //mi list_cmd
 fn list_cmd() -> CommandBuilder<CmdArgs> {
-    CommandBuilder::with_handler(Command::new("list").about("List all the members"), list_fn)
+    let mut cmd = CommandBuilder::with_handler(
+        Command::new("list").about("List all the related_parties"),
+        list_fn,
+    );
+    CmdArgs::arg_add_option_rp_type(&mut cmd, false);
+    cmd
 }
 
 //mi add_cmd
 fn add_cmd() -> CommandBuilder<CmdArgs> {
-    let mut add = CommandBuilder::with_handler(Command::new("add").about("Add an member"), add_fn);
-    CmdArgs::arg_add_option_string(&mut add, "name", None, "Member name", None);
-    CmdArgs::arg_add_option_rp_id(&mut add, true);
-    add
+    let mut cmd =
+        CommandBuilder::with_handler(Command::new("add").about("Add a related party"), add_fn);
+    CmdArgs::arg_add_option_string(&mut cmd, "name", None, "Name of the related party", None);
+    CmdArgs::arg_add_option_rp_type(&mut cmd, true);
+    CmdArgs::arg_add_option_rp_id(&mut cmd, true);
+    cmd
 }
 
 //mi add_alias_cmd
 fn add_alias_cmd() -> CommandBuilder<CmdArgs> {
     let mut cmd = CommandBuilder::with_handler(
-        Command::new("add_alias").about("Add alias(es) for a member"),
+        Command::new("add_alias").about("Add alias(es) for a related party"),
         add_alias_fn,
     );
     CmdArgs::arg_add_clear(&mut cmd);
-    CmdArgs::arg_add_member_positional(&mut cmd);
+    CmdArgs::arg_add_related_party_positional(&mut cmd);
     CmdArgs::arg_add_positional_string(&mut cmd, "alias", "Alias to add", None, None);
     cmd
 }
@@ -130,7 +144,7 @@ fn add_account_descr_cmd() -> CommandBuilder<CmdArgs> {
         add_account_descr_fn,
     );
     CmdArgs::arg_add_clear(&mut add_account_desc);
-    CmdArgs::arg_add_member_positional(&mut add_account_desc);
+    CmdArgs::arg_add_related_party_positional(&mut add_account_desc);
     CmdArgs::arg_add_positional_string(
         &mut add_account_desc,
         "description",
@@ -141,26 +155,27 @@ fn add_account_descr_cmd() -> CommandBuilder<CmdArgs> {
     add_account_desc
 }
 
-//mi change_address_cmd
-fn change_address_cmd() -> CommandBuilder<CmdArgs> {
-    let mut change_address = CommandBuilder::with_handler(
-        Command::new("change_address").about("Change some address info"),
-        change_address_fn,
+//mi change_data_cmd
+fn change_data_cmd() -> CommandBuilder<CmdArgs> {
+    let mut cmd = CommandBuilder::with_handler(
+        Command::new("change_data").about("Change some data field"),
+        change_data_fn,
     );
-    CmdArgs::arg_add_clear(&mut change_address);
-    CmdArgs::arg_add_member_positional(&mut change_address);
-    CmdArgs::arg_add_option_address(&mut change_address);
-    CmdArgs::arg_add_option_house_number(&mut change_address);
-    CmdArgs::arg_add_option_email(&mut change_address);
-    CmdArgs::arg_add_option_telephone(&mut change_address);
-    CmdArgs::arg_add_option_postcode(&mut change_address);
-    CmdArgs::arg_add_option_tax_name(&mut change_address);
-    change_address
+    CmdArgs::arg_add_clear(&mut cmd);
+    CmdArgs::arg_add_related_party_positional(&mut cmd);
+    CmdArgs::arg_add_option_address(&mut cmd);
+    CmdArgs::arg_add_option_house_number(&mut cmd);
+    CmdArgs::arg_add_option_email(&mut cmd);
+    CmdArgs::arg_add_option_telephone(&mut cmd);
+    CmdArgs::arg_add_option_postcode(&mut cmd);
+    CmdArgs::arg_add_option_tax_name(&mut cmd);
+    cmd
 }
 
-//mp members_cmd
-pub fn members_cmd() -> CommandBuilder<CmdArgs> {
-    let command = Command::new("members").about("Operate on the members section of the database");
+//mp related_parties_cmd
+pub fn related_parties_cmd() -> CommandBuilder<CmdArgs> {
+    let command = Command::new("related_parties")
+        .about("Operate on the related_parties section of the database");
 
     let mut build = CommandBuilder::new(command);
 
@@ -168,7 +183,7 @@ pub fn members_cmd() -> CommandBuilder<CmdArgs> {
     build.add_subcommand(add_cmd());
     build.add_subcommand(add_alias_cmd());
     build.add_subcommand(add_account_descr_cmd());
-    build.add_subcommand(change_address_cmd());
+    build.add_subcommand(change_data_cmd());
 
     build
 }

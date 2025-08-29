@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize, Serializer};
 use crate::{DatabaseRebuild, Date, DbId, Error, OrderedTransactions};
 
 //a RelatedPartyType, RelatedPartyQuery
+//tp RelatedPartyType
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum RelatedPartyType {
     #[default]
@@ -18,10 +19,49 @@ pub enum RelatedPartyType {
     Director,
 }
 
+//ip FromStr for RelatedPartyType
+impl std::str::FromStr for RelatedPartyType {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Error> {
+        let ls = s.to_ascii_lowercase();
+        match ls.as_str() {
+            "member" => Ok(Self::Member),
+            "friend" => Ok(Self::Friend),
+            "donor" => Ok(Self::Donor),
+            "supplier" => Ok(Self::Supplier),
+            "musician" => Ok(Self::Musician),
+            "director" => Ok(Self::Director),
+            _ => Err(format!("Unknown relate party type {s}").into()),
+        }
+    }
+}
+
+//tp RelatedPartyQuery
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum RelatedPartyQuery {
     RpType(RelatedPartyType),
     Any,
+}
+
+//ip RelatedPartyQuery
+impl RelatedPartyQuery {
+    pub fn matches_rp_type(&self, rp_type: RelatedPartyType) -> bool {
+        match self {
+            Self::Any => true,
+            Self::RpType(x) => *x == rp_type,
+        }
+    }
+}
+
+//ip From<Option<RelatedPartyType>> for RelatedPartyQuery
+impl From<Option<RelatedPartyType>> for RelatedPartyQuery {
+    fn from(opt_rpt: Option<RelatedPartyType>) -> Self {
+        if let Some(rpt) = opt_rpt {
+            Self::RpType(rpt)
+        } else {
+            Self::Any
+        }
+    }
 }
 
 //a RelatedParty
@@ -40,16 +80,18 @@ pub struct RelatedParty {
     last_gift_aid: Option<Date>,
     account_descrs: Vec<String>,
     aliases: Vec<String>,
+    transactions: OrderedTransactions<DbId>,
     invoices: OrderedTransactions<DbId>,
 }
 
 //ip RelatedParty
 impl RelatedParty {
     //cp new
-    pub fn new(name: String, rp_id: usize) -> Self {
+    pub fn new(name: String, rp_id: usize, rp_type: RelatedPartyType) -> Self {
         Self {
             name,
             rp_id,
+            rp_type,
             ..Default::default()
         }
     }
@@ -154,8 +196,14 @@ impl RelatedParty {
         self.last_gift_aid.as_ref()
     }
 
+    //ap matches_query
+    pub fn matches_query(&self, query: &RelatedPartyQuery) -> bool {
+        query.matches_rp_type(self.rp_type)
+    }
+
     //mp rebuild
     pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
+        self.transactions.rebuild(database_rebuild)?;
         self.invoices.rebuild(database_rebuild)
     }
 }
@@ -272,14 +320,27 @@ impl DbRelatedParties {
         }
     }
 
-    //ap get_party
-    pub fn get_party(&self, name: &str, _query: RelatedPartyQuery) -> Option<DbRelatedParty> {
+    //mi get_party_of_str
+    fn get_party_of_str(&self, name: &str) -> Option<DbRelatedParty> {
         if name.chars().all(|c| c.is_ascii_digit()) {
             if let Ok(n) = name.parse::<usize>() {
                 return self.get_rp_id(n);
             }
         }
         self.state.borrow().map.get(name).cloned()
+    }
+
+    //ap get_party
+    pub fn get_party(&self, name: &str, query: RelatedPartyQuery) -> Option<DbRelatedParty> {
+        if let Some(db_rp) = self.get_party_of_str(name) {
+            if db_rp.inner().matches_query(&query) {
+                Some(db_rp)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     //ap has_rp_id

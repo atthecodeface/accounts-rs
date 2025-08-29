@@ -246,15 +246,15 @@ impl Database {
         db_id
     }
 
-    //mp clear_related_parties
-    pub fn clear_related_parties(&self) {
+    //mp clear_account_related_parties
+    pub fn clear_account_related_parties(&self) {
         *self.account_related_parties.borrow_mut() = RelatedParties::new(6, 16, 4);
     }
 
     //mp find_account_related_party
     pub fn find_account_related_party(&self, descr: &str) -> DbId {
         if self.account_related_parties.borrow().is_none() {
-            self.clear_related_parties();
+            self.clear_account_related_parties();
         }
         let Some(db_id) = self
             .account_related_parties
