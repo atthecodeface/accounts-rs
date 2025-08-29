@@ -104,9 +104,6 @@ impl Account {
         bt.set_account_id(account_id);
 
         let date = bt.date();
-        if self.transactions.contains_date(date) {
-            let (is_accurate, ot_index) = self.transactions.cursor_of_date(date, true);
-        }
         let db_id = db.add_bank_transaction(bt);
         let db_bank_transaction = db.get(db_id).unwrap().bank_transaction().unwrap();
         let added = db
@@ -147,11 +144,8 @@ impl Account {
         }
         let mut errors = vec![];
         for t in transactions.into_iter() {
-            match self.add_bank_transaction(db, account_id, t) {
-                Err(e) => {
-                    errors.push(e);
-                }
-                _ => (),
+            if let Err(e) = self.add_bank_transaction(db, account_id, t) {
+                errors.push(e);
             }
         }
         self.transactions.sort();
@@ -213,7 +207,11 @@ impl DbAccounts {
         database_rebuild: &DatabaseRebuild,
     ) -> Result<(), Error> {
         if !self.add_account(db_account.clone()) {
-            return Err(format!("Failed to rebuild account, already present?").into());
+            return Err(format!(
+                "Failed to rebuild account {}, already present?",
+                db_account.inner().name()
+            )
+            .into());
         }
         db_account.inner_mut().rebuild(database_rebuild)
     }

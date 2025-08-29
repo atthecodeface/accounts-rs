@@ -47,10 +47,11 @@ pub struct RelatedParty {
 impl RelatedParty {
     //cp new
     pub fn new(name: String, rp_id: usize) -> Self {
-        let mut s = Self::default();
-        s.name = name;
-        s.rp_id = rp_id;
-        s
+        Self {
+            name,
+            rp_id,
+            ..Default::default()
+        }
     }
 
     //ap name
@@ -144,7 +145,7 @@ impl RelatedParty {
     }
 
     //ap account_descrs
-    pub fn account_descrs<'a>(&'a self) -> impl Iterator<Item = &'a str> {
+    pub fn account_descrs(&self) -> impl Iterator<Item = &str> {
         self.account_descrs.iter().map(|a| a.as_str())
     }
 
@@ -212,7 +213,11 @@ impl DbRelatedParties {
         database_rebuild: &DatabaseRebuild,
     ) -> Result<(), Error> {
         if !self.add_related_party(db_related_party.clone()) {
-            return Err(format!("Failed to rebuild related party, already present?").into());
+            return Err(format!(
+                "Failed to rebuild related party {}, already present?",
+                db_related_party.inner().name()
+            )
+            .into());
         }
         db_related_party.inner_mut().rebuild(database_rebuild)
     }
@@ -268,13 +273,10 @@ impl DbRelatedParties {
     }
 
     //ap get_party
-    pub fn get_party(&self, name: &str, query: RelatedPartyQuery) -> Option<DbRelatedParty> {
-        if name.chars().all(|c| c.is_digit(10)) {
-            match name.parse::<usize>() {
-                Ok(n) => {
-                    return self.get_rp_id(n.into());
-                }
-                _ => (),
+    pub fn get_party(&self, name: &str, _query: RelatedPartyQuery) -> Option<DbRelatedParty> {
+        if name.chars().all(|c| c.is_ascii_digit()) {
+            if let Ok(n) = name.parse::<usize>() {
+                return self.get_rp_id(n);
             }
         }
         self.state.borrow().map.get(name).cloned()

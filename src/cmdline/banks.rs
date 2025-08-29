@@ -10,12 +10,12 @@ use crate::Error;
 fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let filename = &cmd_args.string_args[0];
 
-    println!("Attempt to import Lloyds CSV from file '{}'", filename);
+    println!("Attempt to import Lloyds CSV from file '{filename}'");
     let csv_data = std::fs::read_to_string(filename)?;
     let acc_transactions = banks::lloyds::read_transactions_csv(csv_data.as_bytes())?;
 
     if acc_transactions.is_empty() {
-        return Err(format!("Transactions were empty").into());
+        return Err("Transactions were empty".to_string().into());
     }
     let Some(account) = cmd_args
         .db
@@ -28,19 +28,18 @@ fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
         )
         .into());
     };
-    match account
-        .inner_mut()
-        .add_transactions(&cmd_args.db, account.id(), acc_transactions)
+
+    if let Err(unresolved_transactions) =
+        account
+            .inner_mut()
+            .add_transactions(&cmd_args.db, account.id(), acc_transactions)
     {
-        Err(unresolved_transactions) => {
-            eprintln!("Failed to add transactions {:?}", unresolved_transactions);
-            return Err(format!(
-                "Failed to add {} transactions",
-                unresolved_transactions.len()
-            )
-            .into());
-        }
-        _ => (),
+        eprintln!("Failed to add transactions {unresolved_transactions:?}");
+        return Err(format!(
+            "Failed to add {} transactions",
+            unresolved_transactions.len()
+        )
+        .into());
     }
     Ok("".into())
 }

@@ -123,7 +123,6 @@ impl Date {
     }
 
     //cp parse
-    #[must_use]
     pub fn parse(s: &str, _us_dm: bool) -> Result<Self, Error> {
         if let Ok(date) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
             let timestamp = date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as usize;
@@ -134,7 +133,6 @@ impl Date {
     }
 
     //cp parse_user
-    #[must_use]
     pub fn parse_user(s: &str) -> Result<Self, Error> {
         if let Ok(date) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
             let timestamp = date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as usize;

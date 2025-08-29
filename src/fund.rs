@@ -4,9 +4,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::indexed_vec::Idx;
 use crate::{
-    Amount, Database, DatabaseRebuild, Date, DbId, DbTransaction, Error, OrderedTransactions,
+    Amount, DatabaseRebuild, Date, DbId, DbTransaction, Error, OrderedTransactions,
 };
 
 //a Fund
@@ -77,12 +76,7 @@ impl Fund {
 
     //mp add_transaction
     /// Add transaction
-    pub fn add_transaction(
-        &mut self,
-        db: &Database,
-        fund_id: DbId,
-        t: DbTransaction,
-    ) -> Result<(), DbTransaction> {
+    pub fn add_transaction(&mut self, t: DbTransaction) -> Result<(), DbTransaction> {
         let date = t.inner().date();
         let db_id = t.id();
         if let Some(db_ids) = self.transactions.of_date(date) {
@@ -136,7 +130,11 @@ impl DbFunds {
         database_rebuild: &DatabaseRebuild,
     ) -> Result<(), Error> {
         if !self.add_fund(db_fund.clone()) {
-            return Err(format!("Failed to rebuild fund, already present?").into());
+            return Err(format!(
+                "Failed to rebuild fund {}, already present?",
+                db_fund.inner().name(),
+            )
+            .into());
         }
         self.add_fund_aliases(&db_fund);
         db_fund.inner_mut().rebuild(database_rebuild)

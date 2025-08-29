@@ -193,7 +193,7 @@ impl CmdArgs {
         use std::io::Write;
         let s = std::str::from_utf8(&w).unwrap();
         let mut f = std::fs::File::create(&self.write_filename)?;
-        f.write(s.as_bytes())?;
+        f.write_all(s.as_bytes())?;
         Ok(())
     }
 }
@@ -231,7 +231,7 @@ impl CmdArgs {
         {
             Ok(db_m)
         } else {
-            Err(format!("Did not find member '{}'", name).into())
+            Err(format!("Did not find member '{name}'").into())
         }
     }
 
@@ -240,7 +240,7 @@ impl CmdArgs {
         if let Some(db_acc) = self.db.accounts().get_account_by_name(name) {
             Ok(db_acc)
         } else {
-            Err(format!("Did not find account '{}'", name).into())
+            Err(format!("Did not find account '{name}'").into())
         }
     }
 
@@ -249,7 +249,7 @@ impl CmdArgs {
         if let Some(db_acc) = self.db.funds().get_fund(name) {
             Ok(db_acc)
         } else {
-            Err(format!("Did not find fund '{}'", name).into())
+            Err(format!("Did not find fund '{name}'").into())
         }
     }
 }

@@ -200,7 +200,12 @@ impl DbBankTransactions {
         database_rebuild: &DatabaseRebuild,
     ) -> Result<(), Error> {
         if !self.add_transaction(db_bank_transaction.clone()) {
-            return Err(format!("Failed to rebuild bank transaction, already present?").into());
+            return Err(format!(
+                "Failed to rebuild bank transaction {}:{}, already present?",
+                db_bank_transaction.inner().date(),
+                db_bank_transaction.inner().description(),
+            )
+            .into());
         }
         db_bank_transaction.inner_mut().rebuild(database_rebuild)
     }

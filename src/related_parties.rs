@@ -25,7 +25,7 @@ impl RelatedPartiesCache {
     }
     fn inserty_do(&mut self, db_id: DbId, descr: &str) {
         dbg!(&db_id);
-        if descr.as_bytes().len() < self.descr_len {
+        if descr.len() < self.descr_len {
             panic!(
                 "item {db_id} has descriptor that is too short < {}",
                 self.descr_len
@@ -42,7 +42,7 @@ impl RelatedPartiesCache {
     pub fn create<F, I>(descr_len: usize, iter: I, f: F) -> Result<Self, Error>
     where
         I: Iterator<Item = DbId>,
-        F: Fn(DbId, &mut dyn for<'a> FnMut(DbId, &'a str)) -> (),
+        F: Fn(DbId, &mut dyn for<'a> FnMut(DbId, &'a str)),
     {
         let parties = HashMap::default();
         let mut s = Self { descr_len, parties };
@@ -93,8 +93,7 @@ impl RelatedParties {
     pub fn add_new_cache<F, I>(&mut self, iter: I, f: F) -> Result<(), Error>
     where
         I: Iterator<Item = DbId>,
-        F: Fn(DbId, &mut dyn for<'a> FnMut(DbId, &'a str)) -> (),
-        //        F: Fn(DbId, for<'a> fn(DbId, &'a str)) -> (),
+        F: Fn(DbId, &mut dyn for<'a> FnMut(DbId, &'a str)),
     {
         let mut descr_len = self.min_len;
         if let Some(c) = self.caches.last() {
@@ -104,7 +103,7 @@ impl RelatedParties {
                     "add_new_cache: descr_len >= self.max_len {} {}",
                     descr_len, self.max_len
                 );
-                return Err(format!("Size exceeded").into());
+                return Err("Related parties cache size exceeded".to_string().into());
             }
             eprintln!(
                 "add_new_cache: will add new cache level beyond last {} {}",
