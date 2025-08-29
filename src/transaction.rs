@@ -3,9 +3,7 @@ use std::cell::RefCell;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::indexed_vec::Idx;
-use crate::Error;
-use crate::{AccountDesc, Amount, Date, DbId};
+use crate::{Amount, Date, DbId};
 
 //a TransactionType
 //tp TransactionType

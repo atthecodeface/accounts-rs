@@ -81,7 +81,7 @@ impl Fund {
         &mut self,
         db: &Database,
         fund_id: DbId,
-        mut t: DbTransaction,
+        t: DbTransaction,
     ) -> Result<(), DbTransaction> {
         let date = t.inner().date();
         let db_id = t.id();

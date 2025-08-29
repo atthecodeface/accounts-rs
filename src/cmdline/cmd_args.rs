@@ -160,7 +160,7 @@ impl CmdArgs {
                 Ok(())
             }
             FileType::Yaml => {
-                let mut deserializer = serde_yaml::Deserializer::from_str(&s);
+                let deserializer = serde_yaml::Deserializer::from_str(&s);
                 // Deserialize from Vec<DbItem>
                 self.db = Database::deserialize(deserializer, FileFormat::Array)?;
                 Ok(())
