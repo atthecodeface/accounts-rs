@@ -16,10 +16,11 @@ use crate::{Amount, Database, Date, DbId, DbTransaction, OrderedTransactions};
 ///
 /// The transactions should really be in the order in which the
 /// institution lists them (which may well be time-order)
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Fund {
     name: String,
     description: String,
+    aliases: Vec<String>,
     transactions: OrderedTransactions<DbId>,
     start_balance: Amount,
     end_balance: Option<Amount>,
@@ -36,6 +37,7 @@ impl Fund {
             name,
             description,
             transactions,
+            aliases: vec![],
             start_balance: Amount::default(),
             end_balance: None,
         }
@@ -49,6 +51,21 @@ impl Fund {
     //ap desc
     pub fn desc(&self) -> &str {
         &self.description
+    }
+
+    //ap aliases
+    pub fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    //mp add_alias
+    pub fn add_alias<I: Into<String>>(&mut self, i: I) {
+        self.aliases.push(i.into());
+    }
+
+    //mp clear_aliases
+    pub fn clear_aliases(&mut self) {
+        self.aliases.clear();
     }
 
     //mp transactions_between_dates
@@ -83,7 +100,7 @@ crate::make_db_item!(DbFund, Fund);
 //a DbFunds
 //ti DbFundsState
 /// The actual DbFunds state
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct DbFundsState {
     array: Vec<DbFund>,
     index: HashMap<String, DbFund>,
@@ -93,7 +110,7 @@ struct DbFundsState {
 /// A dictionary of FundDesc -> DbFund
 ///
 /// This serializes as an array of DBFund, as the funds themselves include their FundDesc
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DbFunds {
     state: RefCell<DbFundsState>,
 }
@@ -116,6 +133,27 @@ impl DbFunds {
             .index
             .insert(db_fund.inner().desc().into(), db_fund.clone());
         true
+    }
+
+    //mp remove_fund_aliases
+    pub fn remove_fund_aliases(&self, db_fund: &DbFund) {
+        for a in db_fund.inner().aliases() {
+            if self.state.borrow().index.contains_key(a) {
+                self.state.borrow_mut().index.remove(a);
+            }
+        }
+    }
+
+    //mp add_fund_aliases
+    pub fn add_fund_aliases(&self, db_fund: &DbFund) {
+        for a in db_fund.inner().aliases() {
+            if !self.state.borrow().index.contains_key(a) {
+                self.state
+                    .borrow_mut()
+                    .index
+                    .insert(a.into(), db_fund.clone());
+            }
+        }
     }
 
     //ap has_fund

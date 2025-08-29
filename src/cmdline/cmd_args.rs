@@ -2,7 +2,8 @@
 use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::RelatedPartyQuery;
-use crate::{Database, Date, DbAccount, DbRelatedParty, Error, FileFormat, FileType};
+use crate::{Database, Date, Error, FileFormat, FileType};
+use crate::{DbAccount, DbFund, DbRelatedParty};
 
 //a CmdArgs
 //tp CmdArgs
@@ -201,6 +202,15 @@ impl CmdArgs {
             Err(format!("Did not find account '{}'", name).into())
         }
     }
+
+    //ap get_fund
+    pub fn get_fund(&self, name: &str) -> Result<DbFund, Error> {
+        if let Some(db_acc) = self.db.funds().get_fund(name) {
+            Ok(db_acc)
+        } else {
+            Err(format!("Did not find fund '{}'", name).into())
+        }
+    }
 }
 
 //ip CmdArgs - arg adders
@@ -347,6 +357,11 @@ impl CmdArgs {
             Some(1),
             None,
         );
+    }
+
+    //fp arg_add_fund_positional
+    pub fn arg_add_fund_positional(builder: &mut CommandBuilder<Self>) {
+        Self::arg_add_positional_string(builder, "fund", "Fund identification", Some(1), None);
     }
 
     //fp arg_add_positional_string

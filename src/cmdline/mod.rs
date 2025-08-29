@@ -4,10 +4,12 @@ pub use cmd_args::CmdArgs;
 
 mod accounts;
 mod banks;
+mod funds;
 mod members;
 mod write;
 
 pub use accounts::accounts_cmd;
 pub use banks::banks_cmd;
+pub use funds::funds_cmd;
 pub use members::members_cmd;
 pub use write::write_cmd;

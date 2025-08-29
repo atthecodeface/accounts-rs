@@ -32,8 +32,10 @@ use std::collections::HashMap;
 
 use crate::indexed_vec::Idx;
 
-use crate::{Account, DbAccounts, RelatedParties};
+use crate::RelatedParties;
+use crate::{Account, DbAccounts};
 use crate::{BankTransaction, DbBankTransactions, DbRelatedParties, RelatedParty};
+use crate::{DbFunds, Fund};
 use crate::{DbId, DbItem};
 use crate::{Error, FileFormat};
 
@@ -44,9 +46,11 @@ use crate::{Error, FileFormat};
 /// The database is maintained first as a dictionary of item id to
 /// item.
 ///
-/// They are reorganized as:
+/// They are organized as:
 ///
-/// * DbAccounts, which 'contain' the DbAccTransactions.
+/// * DbAccounts, which 'contain' all the DbBankTransactions.
+///
+/// * DbFunds, which 'contain' all the DbTransactions (although a DbTransaction can be in *two* funds).
 ///
 /// * DbRelatedParties, which 'contain' the related parties; when an
 ///    account transaction is added, it is matched to a related party
@@ -94,6 +98,9 @@ pub struct Database {
     /// All of the accounts in the database
     accounts: DbAccounts,
 
+    /// All of the funds in the database
+    funds: DbFunds,
+
     /// All of the related_parties in the database
     related_parties: DbRelatedParties,
 
@@ -112,6 +119,11 @@ impl Database {
     //ap accounts
     pub fn accounts(&self) -> &DbAccounts {
         &self.accounts
+    }
+
+    //ap funds
+    pub fn funds(&self) -> &DbFunds {
+        &self.funds
     }
 
     //ap related_parties
@@ -277,7 +289,9 @@ impl std::convert::TryFrom<Vec<DbItem>> for Database {
         }
         db.state = state.into();
         // Run through all items - look for accounts, and rebuild the Accounts from the database
-        // Run through all items - look for transactions, and rebuild the BankTransactions from the database
+        // Run through all items - look for funds, and rebuild the Funds from the database
+        // Run through all items - look for bank_transactions, and rebuild the BankTransactions from the database
+        // Run through all items - look for transactions, and rebuild the Transactions from the database
         // Run through all items - look for related parties, and rebuild the RelatedParties from the database
         Ok(db)
     }
