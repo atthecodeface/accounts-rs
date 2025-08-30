@@ -46,6 +46,9 @@ pub enum RelatedPartyQuery {
 
 //ip RelatedPartyQuery
 impl RelatedPartyQuery {
+    pub fn is_any(&self) -> bool {
+        matches!(self, Self::Any)
+    }
     pub fn matches_rp_type(&self, rp_type: RelatedPartyType) -> bool {
         match self {
             Self::Any => true,

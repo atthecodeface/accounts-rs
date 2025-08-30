@@ -174,13 +174,13 @@ impl CmdArgs {
 
     //mi set_start_date
     fn set_start_date(&mut self, s: &str) -> Result<(), Error> {
-        self.start_date = Date::parse(s, false)?;
+        self.start_date = Date::parse(s)?;
         Ok(())
     }
 
     //mi set_end_date
     fn set_end_date(&mut self, s: &str) -> Result<(), Error> {
-        self.end_date = Date::parse(s, false)?;
+        self.end_date = Date::parse(s)?;
         Ok(())
     }
 

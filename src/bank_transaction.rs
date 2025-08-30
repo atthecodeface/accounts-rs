@@ -55,12 +55,6 @@ pub struct BankTransaction {
     /// Date
     ///
     date: Date,
-    /// Account order (usually Data + small offset)
-    ///
-    /// The ordering in which it is placed within the account
-    ///
-    /// If this is 'none' then the ordering is unknown
-    ordering: usize,
     /// CSV BankTransaction Type,
     ttype: BankTransactionType,
     /// Bank account description that the transaction belongs to
@@ -120,7 +114,6 @@ impl BankTransaction {
             debit,
             credit,
             balance,
-            ordering: 0,
             account_id: DbId::none(),
             related_party: DbId::none(),
         }

@@ -25,10 +25,12 @@ fn query_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     if cmd_args.desc.is_some() {
         query = query.with_desc(cmd_args.desc.as_ref().unwrap());
     }
+    query = query.with_date_range(cmd_args.get_date_range());
 
+    println!("{query}");
     let db_query = cmd_args.db.query(query);
     for x in db_query {
-        eprintln!("{} : {}", x, cmd_args.db.get(x).unwrap());
+        println!("{} : {}", x, cmd_args.db.get(x).unwrap());
     }
 
     CmdArgs::cmd_ok()
@@ -44,6 +46,8 @@ pub fn query_cmd() -> CommandBuilder<CmdArgs> {
     CmdArgs::arg_add_option_search_desc(&mut cmd);
     CmdArgs::arg_add_option_rp_type(&mut cmd, false);
     CmdArgs::arg_add_option_item_type(&mut cmd, false);
+    CmdArgs::arg_add_option_start_date(&mut cmd);
+    CmdArgs::arg_add_option_end_date(&mut cmd);
 
     cmd
 }

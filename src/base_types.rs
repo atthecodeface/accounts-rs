@@ -1,5 +1,6 @@
 //a Imports
 use chrono::{DateTime, Datelike, NaiveDate, TimeZone, Utc};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
@@ -172,6 +173,17 @@ impl From<Option<Date>> for DateRange {
     }
 }
 
+//ip std::fmt::Display for DateRange
+impl std::fmt::Display for DateRange {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        if self.is_empty() {
+            write!(fmt, "<no dates>")
+        } else {
+            write!(fmt, "{} to {}", self.start, self.end)
+        }
+    }
+}
+
 //tp Date
 /// A Date in the system
 ///
@@ -187,7 +199,7 @@ pub struct Date {
 //ip From<i64> for Date
 impl From<i64> for Date {
     fn from(timestamp: i64) -> Date {
-        let value = (timestamp / 60 * 24 * 24) as usize;
+        let value = (timestamp / 60 / 60 / 24) as usize;
         Self { value }
     }
 }
@@ -199,6 +211,26 @@ impl From<DateTime<Utc>> for Date {
     }
 }
 
+//ip From<Date> for DateTime<Utc>
+impl From<Date> for DateTime<Utc> {
+    #[track_caller]
+    fn from(date: Date) -> DateTime<Utc> {
+        if date.is_none() {
+            DateTime::<Utc>::from_timestamp(0, 0).unwrap()
+        } else {
+            DateTime::<Utc>::from_timestamp((date.value * 24 * 60 * 60) as i64, 0).unwrap()
+        }
+    }
+}
+
+//ip From<&Date> for DateTime<Utc>
+impl From<&Date> for DateTime<Utc> {
+    #[track_caller]
+    fn from(date: &Date) -> DateTime<Utc> {
+        (*date).into()
+    }
+}
+
 //ip Date
 impl Date {
     //ap is_none
@@ -207,18 +239,29 @@ impl Date {
     }
 
     //cp parse
-    pub fn parse(s: &str, _us_dm: bool) -> Result<Self, Error> {
-        if let Ok(date) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
-            Ok(date.and_hms_opt(0, 0, 0).unwrap().and_utc().into())
-        } else {
-            Err(Error::ParseDate(s.into()))
-        }
-    }
-
-    //cp parse_user
-    pub fn parse_user(s: &str) -> Result<Self, Error> {
-        if let Ok(date) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
-            Ok(date.and_hms_opt(0, 0, 0).unwrap().and_utc().into())
+    pub fn parse(s: &str) -> Result<Self, Error> {
+        let r1 = Regex::new(r"^([0-9]{1,2})/([0-9]{1,2})/([0-9]{1,2})$").unwrap();
+        let r2 = Regex::new(r"^([0-9]{1,2})/([0-9]{1,2})/([0-9]{4,4})$").unwrap();
+        let r3 = Regex::new(r"^([0-9]{1,2})/([0-9]{1,2})$").unwrap();
+        let r4 = Regex::new(r"^([0-9]{1,2})/([0-9]{4,4})$").unwrap();
+        if let Some(c) = r1.captures(s) {
+            let day = c.get(1).unwrap().as_str().parse::<u32>().unwrap();
+            let month = c.get(2).unwrap().as_str().parse::<u32>().unwrap();
+            let year = c.get(3).unwrap().as_str().parse::<i32>().unwrap();
+            Ok(Self::of_dmy(day, month, year))
+        } else if let Some(c) = r2.captures(s) {
+            let day = c.get(1).unwrap().as_str().parse::<u32>().unwrap();
+            let month = c.get(2).unwrap().as_str().parse::<u32>().unwrap();
+            let year = c.get(3).unwrap().as_str().parse::<i32>().unwrap();
+            Ok(Self::of_dmy(day, month, year))
+        } else if let Some(c) = r3.captures(s) {
+            let month = c.get(1).unwrap().as_str().parse::<u32>().unwrap();
+            let year = c.get(2).unwrap().as_str().parse::<i32>().unwrap();
+            Ok(Self::of_dmy(1, month, year))
+        } else if let Some(c) = r4.captures(s) {
+            let month = c.get(1).unwrap().as_str().parse::<u32>().unwrap();
+            let year = c.get(2).unwrap().as_str().parse::<i32>().unwrap();
+            Ok(Self::of_dmy(1, month, year))
         } else {
             Err(Error::ParseDate(s.into()))
         }
@@ -239,13 +282,23 @@ impl Date {
     //cp of_dmy
     #[track_caller]
     pub fn of_dmy(day: u32, month: u32, year: i32) -> Self {
+        let year = {
+            if year < 90 {
+                year + 2000
+            } else if year < 100 {
+                year + 1900
+            } else {
+                year
+            }
+        };
         let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
-        Utc.from_utc_datetime(&date.into()).into()
+        let date = Utc.from_utc_datetime(&date.into()).into();
+        date
     }
 
     //ap dmy
     pub fn dmy(&self) -> (u32, u32, i32) {
-        let date_time = DateTime::<Utc>::from_timestamp(self.value as i64, 0).unwrap();
+        let date_time: DateTime<Utc> = self.into();
         let date = date_time.naive_utc().date();
         (date.day(), date.month(), date.year())
     }
@@ -254,7 +307,11 @@ impl Date {
 //ip std::fmt::Display for Date
 impl std::fmt::Display for Date {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let date_time = DateTime::<Utc>::from_timestamp(self.value as i64, 0).unwrap();
-        write!(fmt, "{}", date_time.format("%d/%m/%Y"),)
+        if self.is_none() {
+            write!(fmt, "<None>")
+        } else {
+            let date_time: DateTime<Utc> = self.into();
+            write!(fmt, "{}", date_time.format("%d/%m/%Y"),)
+        }
     }
 }

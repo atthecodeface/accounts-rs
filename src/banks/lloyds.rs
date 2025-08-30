@@ -42,7 +42,7 @@ impl TryFrom<CsvTransaction> for BankTransaction {
                 "CSV transaction had no balance field value {csv:?}"
             )));
         }
-        let date = Date::parse(&csv.date, false)?;
+        let date = Date::parse(&csv.date)?;
         let mut debit = None;
         if let Some(d) = &csv.debit {
             let amount: Amount = d.parse()?;
