@@ -3,7 +3,7 @@ use thunderclap::{CommandArgs, CommandBuilder};
 
 use rust_accounts::RelatedPartyQuery;
 use rust_accounts::RelatedPartyType;
-use rust_accounts::{Database, Date, Error, FileFormat, FileType};
+use rust_accounts::{Database, Date, DateRange, Error, FileFormat, FileType};
 use rust_accounts::{DbAccount, DbFund, DbItemType, DbRelatedParty};
 
 //a CmdArgs
@@ -19,8 +19,8 @@ pub struct CmdArgs {
     pub item_type: Option<DbItemType>,
     pub rp_id: Option<usize>,
     pub rp_type: Option<RelatedPartyType>,
-    pub start_date: Option<Date>,
-    pub end_date: Option<Date>,
+    pub start_date: Date,
+    pub end_date: Date,
     pub postcode: Option<String>,
     pub house_number: Option<String>,
     pub address: Option<String>,
@@ -51,8 +51,8 @@ impl CommandArgs for CmdArgs {
         self.name = None;
         self.rp_id = None;
         self.rp_type = None;
-        self.start_date = None;
-        self.end_date = None;
+        self.start_date = Date::default();
+        self.end_date = Date::default();
         self.postcode = None;
         self.house_number = None;
         self.address = None;
@@ -174,15 +174,13 @@ impl CmdArgs {
 
     //mi set_start_date
     fn set_start_date(&mut self, s: &str) -> Result<(), Error> {
-        let date = Date::parse(s, false)?;
-        self.start_date = Some(date);
+        self.start_date = Date::parse(s, false)?;
         Ok(())
     }
 
     //mi set_end_date
     fn set_end_date(&mut self, s: &str) -> Result<(), Error> {
-        let date = Date::parse(s, false)?;
-        self.end_date = Some(date);
+        self.end_date = Date::parse(s, false)?;
         Ok(())
     }
 
@@ -241,24 +239,16 @@ impl CmdArgs {
 impl CmdArgs {
     //ap get_date
     pub fn get_date(&self) -> Result<Date, Error> {
-        if let Some(date) = self.start_date {
-            Ok(date)
-        } else {
+        if self.start_date.is_none() {
             Err("No date supplied".to_string().into())
+        } else {
+            Ok(self.start_date)
         }
     }
 
     //ap get_date_range
-    pub fn get_date_range(&self) -> Option<(Date, Date)> {
-        if let Some(start_date) = self.start_date {
-            if let Some(end_date) = self.end_date {
-                Some((start_date, end_date))
-            } else {
-                Some((start_date, Date::default()))
-            }
-        } else {
-            None
-        }
+    pub fn get_date_range(&self) -> DateRange {
+        (self.start_date, self.end_date).into()
     }
 
     //ap get_related_party

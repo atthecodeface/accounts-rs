@@ -39,7 +39,7 @@ pub use error::Error;
 mod indexed_vec;
 
 mod base_types;
-pub use base_types::{Date, Entity, FileFormat, FileType, Ordering};
+pub use base_types::{Date, DateRange, Entity, FileFormat, FileType, Ordering};
 
 mod ordered;
 pub use ordered::{OTCursor, OTIndex, OrderedTransactions};

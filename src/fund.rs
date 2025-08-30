@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{Amount, DatabaseRebuild, Date, DbId, DbTransaction, Error, OrderedTransactions};
+use crate::{Amount, DateRange, DatabaseRebuild, Date, DbId, DbTransaction, Error, OrderedTransactions};
 
 //a Fund
 //tp Fund
@@ -73,9 +73,9 @@ impl Fund {
         self.aliases.clear();
     }
 
-    //mp transactions_between_dates
-    pub fn transactions_between_dates(&self, start: Date, end: Date) -> Vec<DbId> {
-        self.transactions.transactions_between_dates(start, end)
+    //mp transactions_in_range
+    pub fn transactions_in_range(&self, date_range:DateRange) -> Vec<DbId> {
+        self.transactions.transactions_in_range(date_range)
     }
 
     //mp add_transaction

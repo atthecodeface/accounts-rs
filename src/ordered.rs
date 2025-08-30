@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::{Idx, VecWithIndex};
 use crate::make_index;
-use crate::{DatabaseRebuild, Date, DbId, Error};
+use crate::{DatabaseRebuild, Date, DbId, Error, DateRange};
 
 //a OrderedTransactionId
 //tt OrderedTransactionId
@@ -180,15 +180,20 @@ where
         self.sort();
     }
 
-    //mp transactions_between_dates
-    pub fn transactions_between_dates(&self, start: Date, end: Date) -> Vec<T> {
-        let (mut c, _) = self.cursor_of_date(start, true);
+    //mp transactions_in_range
+    pub fn transactions_in_range(&self, date_range:DateRange) -> Vec<T> {
+        let mut c;
+        if date_range.is_empty() {
+            c = self.cursor_first();
+        } else {
+            c = self.cursor_of_date(date_range.start(), true).0;
+        }
         let mut result = vec![];
         loop {
             let Some(date) = self.cursor_date(&c) else {
                 break;
             };
-            if date >= end {
+            if !date_range.is_empty() && !date_range.contains(date) {
                 break;
             }
             result.push(self[c]);

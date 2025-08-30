@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::Idx;
 use crate::{
-    AccountDesc, BankTransaction, Database, DatabaseRebuild, Date, DbId, Error, OrderedTransactions,
+    DateRange, AccountDesc, BankTransaction, Database, DatabaseRebuild, Date, DbId, Error, OrderedTransactions,
 };
 
 //a Account
@@ -63,9 +63,9 @@ impl Account {
         &self.name
     }
 
-    //mp transactions_between_dates
-    pub fn transactions_between_dates(&self, start: Date, end: Date) -> Vec<DbId> {
-        self.transactions.transactions_between_dates(start, end)
+    //mp transactions_in_range
+    pub fn transactions_in_range(&self, date_range:DateRange) -> Vec<DbId> {
+        self.transactions.transactions_in_range(date_range)
     }
 
     //mp validate_transactions

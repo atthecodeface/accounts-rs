@@ -95,7 +95,83 @@ impl Ordering {
     }
 }
 
-//a Date
+//a Date, DateRange
+//tp DateRange
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DateRange {
+    start: Date,
+    end: Date,
+}
+
+//ip DateRange
+impl DateRange {
+    pub fn validate(self) -> Self {
+        if self.start.is_none() {
+            Self::default()
+        } else if self.end.is_none() {
+            Self {
+                start: self.start,
+                end: self.start.plus_days(1),
+            }
+        } else if self.end <= self.start {
+            Self::default()
+        } else {
+            self
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.start.is_none()
+    }
+    pub fn len(&self) -> usize {
+        self.end.value - self.start.value
+    }
+    pub fn contains(&self, date: Date) -> bool {
+        if date.is_none() {
+            false
+        } else if self.is_empty() {
+            false
+        } else {
+            ((self.start.value)..(self.end.value)).contains(&date.value)
+        }
+    }
+    pub fn start(&self) -> Date {
+        self.start
+    }
+    pub fn end(&self) -> Date {
+        self.end
+    }
+}
+
+//ip From<Date> for DateRange
+impl From<Date> for DateRange {
+    fn from(start: Date) -> DateRange {
+        (Self {
+            start: start,
+            end: Date::default(),
+        })
+        .validate()
+    }
+}
+
+//ip From<(Date, Date)> for DateRange
+impl From<(Date, Date)> for DateRange {
+    fn from((start, end): (Date, Date)) -> DateRange {
+        (Self { start, end }).validate()
+    }
+}
+
+//ip From<Option<Date>> for DateRange
+impl From<Option<Date>> for DateRange {
+    fn from(start: Option<Date>) -> DateRange {
+        let start = start.unwrap_or_default();
+        (Self {
+            start,
+            end: Date::default(),
+        })
+        .validate()
+    }
+}
+
 //tp Date
 /// A Date in the system
 ///
@@ -104,8 +180,23 @@ impl Ordering {
     Debug, Clone, Copy, Default, Serialize, Deserialize, Hash, PartialEq, Eq, PartialOrd, Ord,
 )]
 pub struct Date {
-    /// This is a UTC timestamp
+    /// This is a UTC timestamp / 24*60*60
     value: usize,
+}
+
+//ip From<i64> for Date
+impl From<i64> for Date {
+    fn from(timestamp: i64) -> Date {
+        let value = (timestamp / 60 * 24 * 24) as usize;
+        Self { value }
+    }
+}
+
+//ip From<DateTime<Utc>> for Date
+impl From<DateTime<Utc>> for Date {
+    fn from(utc: DateTime<Utc>) -> Date {
+        utc.timestamp().into()
+    }
 }
 
 //ip Date
@@ -115,18 +206,10 @@ impl Date {
         self.value == 0
     }
 
-    //mp as_ordering
-    /// Return a usize that an be used to order (at least) 100
-    /// transactions on a particular day
-    pub fn as_ordering(&self) -> Ordering {
-        Ordering::from_usize(self.value)
-    }
-
     //cp parse
     pub fn parse(s: &str, _us_dm: bool) -> Result<Self, Error> {
         if let Ok(date) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
-            let timestamp = date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as usize;
-            Ok(Self { value: timestamp })
+            Ok(date.and_hms_opt(0, 0, 0).unwrap().and_utc().into())
         } else {
             Err(Error::ParseDate(s.into()))
         }
@@ -135,8 +218,7 @@ impl Date {
     //cp parse_user
     pub fn parse_user(s: &str) -> Result<Self, Error> {
         if let Ok(date) = NaiveDate::parse_from_str(s, "%d/%m/%Y") {
-            let timestamp = date.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp() as usize;
-            Ok(Self { value: timestamp })
+            Ok(date.and_hms_opt(0, 0, 0).unwrap().and_utc().into())
         } else {
             Err(Error::ParseDate(s.into()))
         }
@@ -145,17 +227,20 @@ impl Date {
     //mp plus_days
     #[must_use]
     pub fn plus_days(&self, n: usize) -> Self {
-        let value = self.value + 24 * 60 * 60 * n;
-
-        Self { value }
+        if self.is_none() {
+            *self
+        } else {
+            Self {
+                value: self.value + n,
+            }
+        }
     }
 
     //cp of_dmy
     #[track_caller]
     pub fn of_dmy(day: u32, month: u32, year: i32) -> Self {
         let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
-        let value = Utc.from_utc_datetime(&date.into()).timestamp() as usize;
-        Self { value }
+        Utc.from_utc_datetime(&date.into()).into()
     }
 
     //ap dmy

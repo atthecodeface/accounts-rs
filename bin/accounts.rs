@@ -49,12 +49,11 @@ fn validate_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
 //mi transactions_fn
 fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let name = &cmd_args.string_args[0];
-    let (start, end) = cmd_args
-        .get_date_range()
-        .unwrap_or((Date::of_dmy(1, 1, 2020), Date::of_dmy(1, 1, 2099)));
+    let date_range = cmd_args
+        .get_date_range();
     let db_acc = cmd_args.get_account(name)?;
 
-    let transactions = db_acc.inner().transactions_between_dates(start, end);
+    let transactions = db_acc.inner().transactions_in_range(date_range);
     for db_id in transactions.into_iter() {
         let bt = cmd_args.db.get(db_id).unwrap().bank_transaction().unwrap();
         let bt = bt.inner();
