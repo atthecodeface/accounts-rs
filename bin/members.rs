@@ -1,13 +1,14 @@
 //a Imports
 use clap::Command;
-use thunderclap::CommandBuilder;
+use thunderclap::json;
+use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::CmdArgs;
 use rust_accounts::{Error, RelatedParty, RelatedPartyType};
 
 //a Members
 //fi list_fn
-fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     println!("Members:");
     for k in cmd_args.db.related_parties().db_ids() {
         let member = cmd_args.db.get(k).unwrap().related_party().unwrap();
@@ -17,21 +18,21 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
             println!("      {d}");
         }
     }
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //fi add_fn
-fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn add_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
     let member_id = cmd_args.rp_id.unwrap();
 
     let member = RelatedParty::new(name.into(), member_id, RelatedPartyType::Member);
     let db_id = cmd_args.db.add_related_party(member);
-    Ok(format!("DbId{db_id}"))
+    Ok(json::to_value(db_id).unwrap())
 }
 
 //fi add_alias_fn
-fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
     let clear = cmd_args.clear;
 
@@ -50,11 +51,11 @@ fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
         .db
         .related_parties()
         .add_related_party_aliases(&db_m);
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //fi add_account_descr_fn
-fn add_account_descr_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn add_account_descr_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
     let clear = cmd_args.clear;
 
@@ -65,11 +66,11 @@ fn add_account_descr_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     for i in 1..cmd_args.string_args.len() {
         db_m.inner_mut().add_account_descr(&cmd_args.string_args[i]);
     }
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //fi change_address_fn
-fn change_address_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn change_address_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
     let clear = cmd_args.clear;
 
@@ -95,7 +96,7 @@ fn change_address_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     if let Some(s) = cmd_args.tax_name.as_ref() {
         db_m.inner_mut().change_tax_name(s);
     }
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //mi list_cmd

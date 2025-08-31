@@ -1,6 +1,7 @@
 //a Imports
 use clap::Command;
-use thunderclap::CommandBuilder;
+pub use thunderclap::json;
+use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::CmdArgs;
 use rust_accounts::{Account, AccountDesc, Date, Error};
@@ -8,18 +9,18 @@ use rust_accounts::{Account, AccountDesc, Date, Error};
 //a Accounts
 //a Write
 //fi list_fn
-fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     println!("Accounts:");
     for k in cmd_args.db.accounts().ids() {
         let account = cmd_args.db.get(k).unwrap().account().unwrap();
         let account = account.borrow();
         println!("  {k} : {} - {}", account.org(), account.name());
     }
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //mi add_fn
-fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn add_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let bank = &cmd_args.string_args[0];
     let name = &cmd_args.string_args[1];
     let sort_code = &cmd_args.string_args[2];
@@ -29,11 +30,11 @@ fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
     let account = Account::new(bank.to_owned(), name.to_owned(), desc);
 
     let db_id = cmd_args.db.add_account(account);
-    Ok(format!("DbId{db_id}"))
+    Ok(json::to_value(db_id).unwrap())
 }
 
 //mi validate_fn
-fn validate_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn validate_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
     let db_acc = cmd_args.get_account(name)?;
 
@@ -43,14 +44,13 @@ fn validate_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
             eprintln!("{db_id} {e}");
         }
     }
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //mi transactions_fn
-fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
-    let date_range = cmd_args
-        .get_date_range();
+    let date_range = cmd_args.get_date_range();
     let db_acc = cmd_args.get_account(name)?;
 
     let transactions = db_acc.inner().transactions_in_range(date_range);
@@ -64,7 +64,7 @@ fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
         let start_balance = end_balance - balance_delta;
         println!("{date} {desc:100} {start_balance:12} {balance_delta:12} {end_balance:12}");
     }
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //mi validate_cmd

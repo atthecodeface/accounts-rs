@@ -1,4 +1,46 @@
 //a Imports
+/// # Accounts
+///
+/// database
+///
+///  query - returns an array of DbId
+///
+///  list - shows a list DbID
+///
+///  get - get a list of database entries
+///
+/// accounts
+///
+///  add - add a new account
+///
+///  list - list the accounts
+///
+///  validate - validate an account; tracking starting/ending balance through al bank transactions
+///
+///  transactions -
+///
+/// banks
+///
+///  lloyds - import CSV data for a Lloyds bank account
+///
+/// funds
+///
+///  add
+///
+///  add_alias
+///
+///  list
+///
+/// members
+///
+/// query
+///
+/// related_parties
+///
+/// transactions
+///
+/// write
+///
 use clap::Command;
 use thunderclap::CommandBuilder;
 
@@ -7,9 +49,9 @@ pub use cmd_args::CmdArgs;
 
 mod accounts;
 mod banks;
+mod database;
 mod funds;
 mod members;
-mod query;
 mod related_parties;
 mod write;
 
@@ -29,7 +71,7 @@ pub fn main() -> Result<(), rust_accounts::Error> {
     build.add_subcommand(members::members_cmd());
     build.add_subcommand(related_parties::related_parties_cmd());
     build.add_subcommand(write::write_cmd());
-    build.add_subcommand(query::query_cmd());
+    build.add_subcommand(database::database_cmd());
 
     let mut cmd_args = CmdArgs::default();
     let mut command = build.main(true, true);

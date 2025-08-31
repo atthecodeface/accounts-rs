@@ -1,12 +1,13 @@
 //a Imports
 use clap::Command;
-use thunderclap::CommandBuilder;
+use thunderclap::json;
+use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::CmdArgs;
 use rust_accounts::{banks, Error};
 
 //a Members
-fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let filename = &cmd_args.string_args[0];
 
     println!("Attempt to import Lloyds CSV from file '{filename}'");
@@ -40,7 +41,7 @@ fn lloyds_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
         )
         .into());
     }
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 pub fn banks_cmd() -> CommandBuilder<CmdArgs> {

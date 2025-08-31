@@ -1,14 +1,15 @@
 //a Imports
 use clap::Command;
-use thunderclap::CommandBuilder;
+use thunderclap::json;
+use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::CmdArgs;
 use rust_accounts::Error;
 
 //a Write
-fn write_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn write_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     cmd_args.write_database()?;
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //a write command

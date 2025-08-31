@@ -1,13 +1,14 @@
 //a Imports
 use clap::Command;
-use thunderclap::CommandBuilder;
+use thunderclap::json;
+use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::CmdArgs;
 use rust_accounts::{Error, Fund};
 
 //a Funds
 //fi list_fn
-fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     println!("Funds:");
     for k in cmd_args.db.funds().db_ids() {
         let fund = cmd_args.db.get(k).unwrap().fund().unwrap();
@@ -17,21 +18,21 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
             println!("      {d}");
         }
     }
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //fi add_fn
-fn add_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn add_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
     let description = &cmd_args.string_args[1];
 
     let fund = Fund::new(name, description);
     let db_id = cmd_args.db.add_fund(fund);
-    Ok(format!("DbId{db_id}"))
+    Ok(json::to_value(db_id).unwrap())
 }
 
 //fi add_alias_fn
-fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
+fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
     let clear = cmd_args.clear;
 
@@ -44,7 +45,7 @@ fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<String, Error> {
         db_m.inner_mut().add_alias(&cmd_args.string_args[i]);
     }
     cmd_args.db.funds().add_fund_aliases(&db_m);
-    Ok("".into())
+    CmdArgs::cmd_ok()
 }
 
 //mi list_cmd

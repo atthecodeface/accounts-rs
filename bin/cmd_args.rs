@@ -1,4 +1,7 @@
 //a Imports
+use std::rc::Rc;
+
+use thunderclap::json;
 use thunderclap::{CommandArgs, CommandBuilder};
 
 use rust_accounts::RelatedPartyQuery;
@@ -32,18 +35,17 @@ pub struct CmdArgs {
     pub id: Option<usize>,
     pub string_args: Vec<String>,
     pub usize_args: Vec<usize>,
+    pub value_args: Vec<Rc<json::Value>>,
 }
 
 //ip CommandArgs for CmdArgs
 impl CommandArgs for CmdArgs {
     type Error = Error;
-    type Value = String;
-    fn cmd_ok() -> Result<String, Error> {
-        Ok("".into())
-    }
+    type Value = json::Value;
     fn reset_args(&mut self) {
         self.string_args.clear();
         self.usize_args.clear();
+        self.value_args.clear();
 
         self.clear = false;
 
@@ -109,6 +111,12 @@ impl CmdArgs {
     //mi set_desc
     fn set_desc(&mut self, s: &str) -> Result<(), Error> {
         self.desc = Some(s.into());
+        Ok(())
+    }
+
+    //mi push_value_arg
+    fn push_value_arg(&mut self, s: &Rc<json::Value>) -> Result<(), Error> {
+        self.value_args.push(s.clone());
         Ok(())
     }
 
@@ -528,6 +536,26 @@ impl CmdArgs {
             (count, true),
             default_value,
             Self::push_string_arg,
+        );
+    }
+
+    //fp arg_add_positional_value
+    /// count should be None for optional; Some(0) for a single
+    /// optional argument, Some(n) for a required number
+    pub fn arg_add_positional_value(
+        builder: &mut CommandBuilder<Self>,
+        tag: &'static str,
+        help: &'static str,
+        count: Option<usize>,
+        default_value: Option<&'static str>,
+    ) {
+        builder.add_arg_value(
+            tag,
+            None,
+            help,
+            (count, true),
+            default_value,
+            Self::push_value_arg,
         );
     }
 
