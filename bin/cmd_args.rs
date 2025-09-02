@@ -2,6 +2,7 @@
 use std::rc::Rc;
 
 use thunderclap::json;
+use thunderclap::json::JsonValueConvert;
 use thunderclap::{CommandArgs, CommandBuilder};
 
 use rust_accounts::RelatedPartyQuery;
@@ -37,11 +38,41 @@ pub struct CmdArgs {
     pub usize_args: Vec<usize>,
     pub value_args: Vec<Rc<json::Value>>,
 }
+//ip Debug for CmdArgs
+impl std::fmt::Debug for CmdArgs {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(fmt, "CmdArgs {{")?;
+        write!(fmt, "verbose: {:?}", self.verbose)?;
+        write!(fmt, "clear: {:?}", self.clear)?;
+        write!(fmt, "file_format: {:?}", self.file_format)?;
+        write!(fmt, "write_filename: {:?}", self.write_filename)?;
+        write!(fmt, "item_type: {:?}", self.item_type)?;
+        write!(fmt, "rp_id: {:?}", self.rp_id)?;
+        write!(fmt, "rp_type: {:?}", self.rp_type)?;
+        write!(fmt, "start_date: {:?}", self.start_date)?;
+        write!(fmt, "end_date: {:?}", self.end_date)?;
+        write!(fmt, "postcode: {:?}", self.postcode)?;
+        write!(fmt, "house_number: {:?}", self.house_number)?;
+        write!(fmt, "address: {:?}", self.address)?;
+        write!(fmt, "email: {:?}", self.email)?;
+        write!(fmt, "telephone: {:?}", self.telephone)?;
+        write!(fmt, "tax_name: {:?}", self.tax_name)?;
+        write!(fmt, "name: {:?}", self.name)?;
+        write!(fmt, "desc: {:?}", self.desc)?;
+        write!(fmt, "id: {:?}", self.id)?;
+        write!(fmt, "}}")
+    }
+}
 
 //ip CommandArgs for CmdArgs
 impl CommandArgs for CmdArgs {
     type Error = Error;
+
     type Value = json::Value;
+    fn value_from_str(s: &str) -> Result<Self::Value, Self::Error> {
+        Ok(<json::Value as JsonValueConvert>::value_from_str(s)?)
+    }
+
     fn reset_args(&mut self) {
         self.string_args.clear();
         self.usize_args.clear();

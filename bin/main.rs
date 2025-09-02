@@ -55,7 +55,7 @@ mod members;
 mod related_parties;
 mod write;
 
-pub fn main() -> Result<(), rust_accounts::Error> {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let command = Command::new("database")
         .about("Accounts database tool")
         .version("0.1.0");
