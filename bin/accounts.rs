@@ -16,7 +16,7 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
         let account = account.borrow();
         println!("  {k} : {} - {}", account.org(), account.name());
     }
-    let account_summaries: Vec<_> = accounts
+    let summaries: Vec<_> = accounts
         .iter()
         .map(|db_id| {
             (
@@ -31,7 +31,7 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
             )
         })
         .collect();
-    Ok(json::to_value(account_summaries).unwrap())
+    Ok(json::to_value(summaries).unwrap())
 }
 
 //mi add_fn
@@ -53,7 +53,7 @@ fn validate_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let name = &cmd_args.string_args[0];
     let db_acc = cmd_args.get_account(name)?;
 
-    let errors = db_acc.inner().validate_transactions(&cmd_args.db);
+    let errors = db_acc.inner().validate_bank_transactions(&cmd_args.db);
     if !errors.is_empty() {
         for (db_id, e) in errors.into_iter() {
             eprintln!("{db_id} {e}");
@@ -68,8 +68,8 @@ fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let date_range = cmd_args.get_date_range();
     let db_acc = cmd_args.get_account(name)?;
 
-    let transactions = db_acc.inner().transactions_in_range(date_range);
-    for db_id in transactions.iter() {
+    let bank_transactions = db_acc.inner().bank_transactions_in_range(date_range);
+    for db_id in bank_transactions.iter() {
         let bt = cmd_args.db.get(*db_id).unwrap().bank_transaction().unwrap();
         let bt = bt.inner();
         let date = bt.date();
@@ -79,7 +79,7 @@ fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
         let start_balance = end_balance - balance_delta;
         println!("{date} {desc:100} {start_balance:12} {balance_delta:12} {end_balance:12}");
     }
-    Ok(json::to_value(transactions).unwrap())
+    Ok(json::to_value(bank_transactions).unwrap())
 }
 
 //mi validate_cmd

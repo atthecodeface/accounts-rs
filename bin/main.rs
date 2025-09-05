@@ -51,8 +51,10 @@ mod accounts;
 mod banks;
 mod database;
 mod funds;
+mod invoices;
 mod members;
 mod related_parties;
+mod transactions;
 mod write;
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -68,8 +70,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     build.add_subcommand(accounts::accounts_cmd());
     build.add_subcommand(banks::banks_cmd());
     build.add_subcommand(funds::funds_cmd());
+    build.add_subcommand(invoices::invoices_cmd());
     build.add_subcommand(members::members_cmd());
     build.add_subcommand(related_parties::related_parties_cmd());
+    build.add_subcommand(transactions::transactions_cmd());
     build.add_subcommand(write::write_cmd());
     build.add_subcommand(database::database_cmd());
 

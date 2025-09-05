@@ -32,11 +32,25 @@ impl std::ops::Add<Amount> for Amount {
     }
 }
 
+//ip AddAssign<Amount> for Amount
+impl std::ops::AddAssign<Amount> for Amount {
+    fn add_assign(&mut self, other: Amount) {
+        self.value = (self.value + other.value).into();
+    }
+}
+
 //ip Sub<Amount> for Amount
 impl std::ops::Sub<Amount> for Amount {
     type Output = Amount;
     fn sub(self, other: Amount) -> Amount {
         (self.value - other.value).into()
+    }
+}
+
+//ip SubAssign<Amount> for Amount
+impl std::ops::SubAssign<Amount> for Amount {
+    fn sub_assign(&mut self, other: Amount) {
+        self.value = (self.value - other.value).into();
     }
 }
 

@@ -38,17 +38,20 @@ use crate::{Account, DbAccounts};
 use crate::{BankTransaction, DbBankTransactions};
 use crate::{DbFunds, Fund};
 use crate::{DbId, DbItem, DbItemType};
+use crate::{DbInvoices, Invoice};
 use crate::{DbRelatedParties, RelatedParty};
 use crate::{DbTransactions, Transaction};
 use crate::{Error, FileFormat};
 
 //a DatabaseRebuild
+//tp DatabaseRebuild
 #[derive(Debug, Default)]
 pub struct DatabaseRebuild {
     old_to_new_id_map: HashMap<DbId, DbId>,
     new_to_old_id_map: HashMap<DbId, DbId>,
 }
 
+//ip DatabaseRebuild
 impl DatabaseRebuild {
     pub fn add_mapping(&mut self, old_id: DbId, new_id: DbId) -> Result<(), Error> {
         if self.old_to_new_id_map.contains_key(&old_id) {
@@ -108,6 +111,8 @@ impl DatabaseState {
 ///
 /// * DbFunds, which 'contain' all the DbTransactions (although a DbTransaction can be in *two* funds).
 ///
+/// * DbInvoices
+///
 /// * DbRelatedParties, which 'contain' the related parties; when an
 ///   account transaction is added, it is matched to a related party
 ///   by a best-estimate
@@ -133,6 +138,9 @@ pub struct Database {
     /// All of the funds in the database
     funds: DbFunds,
 
+    /// All of the invoices in the database
+    invoices: DbInvoices,
+
     /// All of the related_parties in the database
     related_parties: DbRelatedParties,
 
@@ -151,6 +159,7 @@ pub struct DatabaseQueryIter<'a> {
     query: DbQuery,
     accounts: Option<&'a DbAccounts>,
     funds: Option<&'a DbFunds>,
+    invoices: Option<&'a DbInvoices>,
     related_parties: Option<&'a DbRelatedParties>,
     bank_transactions: Option<&'a DbBankTransactions>,
     transactions: Option<&'a DbTransactions>,
@@ -169,6 +178,14 @@ impl<'a> DatabaseQueryIter<'a> {
         let funds = {
             if query.item_type_matches(DbItemType::Fund) {
                 Some(&db.funds)
+            } else {
+                None
+            }
+        };
+
+        let invoices = {
+            if query.item_type_matches(DbItemType::Invoice) {
+                Some(&db.invoices)
             } else {
                 None
             }
@@ -202,6 +219,7 @@ impl<'a> DatabaseQueryIter<'a> {
             query,
             accounts,
             funds,
+            invoices,
             related_parties,
             bank_transactions,
             transactions,
@@ -223,6 +241,11 @@ impl<'a> std::iter::Iterator for DatabaseQueryIter<'a> {
                     )
                 } else if let Some(funds) = self.funds {
                     funds.map_nth(|d| self.query.matches_fund(d).then(|| d.id()), self.index)
+                } else if let Some(invoices) = self.invoices {
+                    invoices.map_nth(
+                        |d| self.query.matches_invoice(d).then(|| d.id()),
+                        self.index,
+                    )
                 } else if let Some(related_parties) = self.related_parties {
                     related_parties.map_nth(
                         |d| self.query.matches_related_party(d).then(|| d.id()),
@@ -258,6 +281,10 @@ impl<'a> std::iter::Iterator for DatabaseQueryIter<'a> {
                 self.funds = None;
                 continue;
             }
+            if self.invoices.is_some() {
+                self.invoices = None;
+                continue;
+            }
             if self.related_parties.is_some() {
                 self.related_parties = None;
                 continue;
@@ -284,13 +311,17 @@ impl Database {
         for db_id in state.items.keys() {
             let item = &state.items[db_id];
             match item.itype() {
+                DbItemType::Account => {
+                    self.accounts
+                        .rebuild_add_account(item.account().unwrap(), database_rebuild)?;
+                }
                 DbItemType::Fund => {
                     self.funds
                         .rebuild_add_fund(item.fund().unwrap(), database_rebuild)?;
                 }
-                DbItemType::Account => {
-                    self.accounts
-                        .rebuild_add_account(item.account().unwrap(), database_rebuild)?;
+                DbItemType::Invoice => {
+                    self.invoices
+                        .rebuild_add_invoice(item.invoice().unwrap(), database_rebuild)?;
                 }
                 DbItemType::RelatedParty => {
                     self.related_parties.rebuild_add_related_party(
@@ -321,6 +352,11 @@ impl Database {
         &self.funds
     }
 
+    //ap invoices
+    pub fn invoices(&self) -> &DbInvoices {
+        &self.invoices
+    }
+
     //ap related_parties
     pub fn related_parties(&self) -> &DbRelatedParties {
         &self.related_parties
@@ -343,6 +379,16 @@ impl Database {
             .items
             .get(&id)
             .map(|m| m.account())
+            .flatten()
+    }
+
+    //mp get_related_party
+    pub fn get_related_party(&self, id: DbId) -> Option<crate::DbRelatedParty> {
+        self.state
+            .borrow()
+            .items
+            .get(&id)
+            .map(|m| m.related_party())
             .flatten()
     }
 
@@ -382,6 +428,13 @@ impl Database {
     pub fn add_fund(&self, fund: Fund) -> DbId {
         let (db_id, item) = self.add_item(fund);
         self.funds.add_fund(item.fund().unwrap());
+        db_id
+    }
+
+    //mp add_invoice
+    pub fn add_invoice(&self, invoice: Invoice) -> DbId {
+        let (db_id, item) = self.add_item(invoice);
+        self.invoices.add_invoice(item.invoice().unwrap());
         db_id
     }
 

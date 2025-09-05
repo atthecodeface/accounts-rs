@@ -140,6 +140,11 @@ where
         self.as_mut_slice().get_mut(index)
     }
 
+    //mp clear
+    pub fn clear(&mut self) {
+        self.array.clear();
+    }
+
     // Could add... pop, insert,
 }
 

@@ -152,6 +152,12 @@ where
     K: IndexKey<'vwi>,
     I: Idx + 'vwi,
 {
+    //mp clear
+    pub fn clear(&mut self) {
+        self.array.clear();
+        self.index.clear();
+    }
+
     //mp iter_mut
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut D> {
         self.array.iter_mut()

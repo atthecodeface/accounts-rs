@@ -30,6 +30,7 @@ use crate::{Account, DbAccount};
 use crate::{BankTransaction, DbBankTransaction};
 use crate::{DbFund, Fund};
 use crate::{DbId, Error};
+use crate::{DbInvoice, Invoice};
 use crate::{DbRelatedParty, RelatedParty};
 use crate::{DbTransaction, Transaction};
 
@@ -116,8 +117,9 @@ macro_rules! make_db_item {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum DbItemType {
     Account,
-    Fund,
     BankTransaction,
+    Fund,
+    Invoice,
     Transaction,
     RelatedParty,
 }
@@ -128,11 +130,12 @@ impl std::str::FromStr for DbItemType {
     fn from_str(s: &str) -> Result<Self, Error> {
         match s {
             "account" => Ok(Self::Account),
-            "fund" => Ok(Self::Fund),
             "bank_transaction" => Ok(Self::BankTransaction),
-            "transaction" => Ok(Self::Transaction),
+            "fund" => Ok(Self::Fund),
+            "invoice" => Ok(Self::Invoice),
             "related_party" => Ok(Self::RelatedParty),
             "rp" => Ok(Self::RelatedParty),
+            "transaction" => Ok(Self::Transaction),
             _ => Err(format!("Unknown db item type {s}").into()),
         }
     }
@@ -143,10 +146,11 @@ impl std::str::FromStr for DbItemType {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DbItemTypeE {
     Account(DbAccount),
-    Fund(DbFund),
     BankTransaction(DbBankTransaction),
-    Transaction(DbTransaction),
+    Fund(DbFund),
+    Invoice(DbInvoice),
     RelatedParty(DbRelatedParty),
+    Transaction(DbTransaction),
 }
 
 //ip DbItemTypeE
@@ -156,10 +160,11 @@ impl DbItemTypeE {
         match self {
             DbItemTypeE::Account(d) => Some(d),
             DbItemTypeE::Fund(d) => Some(d),
+            DbItemTypeE::Invoice(d) => Some(d),
             DbItemTypeE::RelatedParty(d) => Some(d),
             DbItemTypeE::BankTransaction(d) => Some(d),
             DbItemTypeE::Transaction(d) => Some(d),
-            _ => None,
+            // _ => None,
         }
     }
 
@@ -176,6 +181,15 @@ impl DbItemTypeE {
     pub fn fund(&self) -> Option<DbFund> {
         if let DbItemTypeE::Fund(fund) = &self {
             Some(fund.clone())
+        } else {
+            None
+        }
+    }
+
+    //ap invoice
+    pub fn invoice(&self) -> Option<DbInvoice> {
+        if let DbItemTypeE::Invoice(invoice) = &self {
+            Some(invoice.clone())
         } else {
             None
         }
@@ -251,6 +265,11 @@ impl DbItem {
         self.value.fund()
     }
 
+    //ap invoice
+    pub fn invoice(&self) -> Option<DbInvoice> {
+        self.value.invoice()
+    }
+
     //ap related_party
     pub fn related_party(&self) -> Option<DbRelatedParty> {
         self.value.related_party()
@@ -296,6 +315,17 @@ impl From<(DbId, Fund)> for DbItem {
             id,
             itype: DbItemType::Fund,
             value: DbItemTypeE::Fund((id, fund).into()),
+        }
+    }
+}
+
+//ip From<(DbId, Invoice)> for DbItem
+impl From<(DbId, Invoice)> for DbItem {
+    fn from((id, invoice): (DbId, Invoice)) -> Self {
+        Self {
+            id,
+            itype: DbItemType::Invoice,
+            value: DbItemTypeE::Invoice((id, invoice).into()),
         }
     }
 }

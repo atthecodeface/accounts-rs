@@ -68,9 +68,6 @@ pub use related_party::{
     DbRelatedParties, DbRelatedParty, RelatedParty, RelatedPartyQuery, RelatedPartyType,
 };
 
-mod fund;
-pub use fund::{DbFund, DbFunds, Fund};
-
 mod account;
 pub use account::{Account, DbAccount, DbAccounts};
 
@@ -78,6 +75,12 @@ mod bank_transaction;
 pub use bank_transaction::{
     BankTransaction, BankTransactionType, DbBankTransaction, DbBankTransactions,
 };
+
+mod fund;
+pub use fund::{DbFund, DbFunds, Fund};
+
+mod invoice;
+pub use invoice::{DbInvoice, DbInvoices, Invoice};
 
 mod transaction;
 pub use transaction::{DbTransaction, DbTransactions, Transaction, TransactionType};

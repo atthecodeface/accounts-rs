@@ -57,9 +57,25 @@ export class ServerRequests {
 
     //mp go_fetch
     async go_fetch(cmd, args) {
-        const uri = `${this.uri}/exec_cmd/${cmd}?${args}`;
+        let uri_args = args;
+        if (utils.is_array(args)) {
+            uri_args = "";
+            let sep  = "";
+            for (const arg of args) {
+                if (utils.is_array(arg)) {
+                    for (let i=1; i<arg.length; i++) {
+                        uri_arg += sep + arg[0] + "=" + arg[i];
+                        sep = "&";
+                    }
+                } else {
+                    uri_args += sep + arg;
+                    sep = "&";
+                }
+            }
+        }
+        const uri = `${this.uri}/exec_cmd/${cmd}?${uri_args}`;
         console.log(`Issuing fetch(${uri}`);
-        return fetch(uri)
+        return fetch(encodeURI(uri))
             .then((response) => {
                 if (!response.ok) {
                     throw new Error(`Failed to fetch: ${response.status}`);

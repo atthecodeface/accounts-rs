@@ -1,51 +1,45 @@
 //a Imports
 use clap::Command;
+pub use thunderclap::json;
 use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::CmdArgs;
-use rust_accounts::{Account, AccountDesc, Date, DbTransactions, Error};
+use rust_accounts::{Date, DbId, Error, Transaction};
 
 //a Transactions
-//mi transactions_fn
-fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
-    let mut transactions = DbTransactions::default();
+//mi add_payment_cmd
+/// This will be a ToRp, as part of a BankTransaction, for a fund for an amount, with optional notes, on a date
+fn add_payment_cmd() -> CommandBuilder<CmdArgs> {
+    let mut cmd = CommandBuilder::with_handler(
+        Command::new("add_payment").about("Add a payment for an expense or invoice"),
+        add_payment_fn,
+    );
+    CmdArgs::arg_add_option_rp_id(&mut cmd, true);
+    CmdArgs::arg_add_option_amount(&mut cmd, true);
+    cmd
+}
 
-    if cmd_args.name.is_some() {
-        transactions = transactions.with_name(cmd_args.name.as_ref().unwrap());
+//mi add_payment_fn
+fn add_payment_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
+    /*
+        let mut transaction = Transaction::new_payment(
+            date, amount, from_fund_id, to_id);
+        for n in notes {
+            transaction.add_note(n);
     }
-    if cmd_args.item_type.is_some() {
-        transactions = transactions.with_item_type(cmd_args.item_type);
-    }
-    if cmd_args.rp_type.is_some() {
-        transactions = transactions.with_rp_type(cmd_args.rp_type);
-    }
-    if cmd_args.id.is_some() {
-        transactions = transactions.with_id(cmd_args.id);
-    }
-    if cmd_args.desc.is_some() {
-        transactions = transactions.with_desc(cmd_args.desc.as_ref().unwrap());
-    }
-
-    let db_transactions = cmd_args.db.transactions(transactions);
-    for x in db_transactions {
-        eprintln!("{} : {}", x, cmd_args.db.get(x).unwrap());
-    }
-
-    CmdArgs::cmd_ok()
+         */
+    let transaction = Transaction::default();
+    // let db_id = cmd_args.db.add_transaction(transaction);
+    let db_id = DbId::default();
+    Ok(json::to_value(db_id).unwrap())
 }
 
 //mp transactions_cmd
 pub fn transactions_cmd() -> CommandBuilder<CmdArgs> {
-    let mut cmd = CommandBuilder::with_handler(
-        Command::new("transactions").about("Transactions the database"),
-        transactions_fn,
-    );
+    let command = Command::new("transactions").about("Transactions in the database");
 
-    CmdArgs::arg_add_option_search_name(&mut cmd);
-    CmdArgs::arg_add_option_search_id(&mut cmd);
-    CmdArgs::arg_add_option_search_desc(&mut cmd);
-    CmdArgs::arg_add_option_rp_type(&mut cmd, false);
-    CmdArgs::arg_add_option_item_type(&mut cmd, false);
+    let mut build = CommandBuilder::new(command);
+    build.add_subcommand(add_payment_cmd());
 
-    cmd
+    build
 }

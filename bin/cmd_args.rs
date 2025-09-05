@@ -7,7 +7,7 @@ use thunderclap::{CommandArgs, CommandBuilder};
 
 use rust_accounts::RelatedPartyQuery;
 use rust_accounts::RelatedPartyType;
-use rust_accounts::{Database, Date, DateRange, Error, FileFormat, FileType};
+use rust_accounts::{Amount, Database, Date, DateRange, Error, FileFormat, FileType};
 use rust_accounts::{DbAccount, DbFund, DbItemType, DbRelatedParty};
 
 //a CmdArgs
@@ -22,6 +22,7 @@ pub struct CmdArgs {
     pub write_filename: String,
     pub item_type: Option<DbItemType>,
     pub rp_id: Option<usize>,
+    pub amount: Option<Amount>,
     pub rp_type: Option<RelatedPartyType>,
     pub start_date: Date,
     pub end_date: Date,
@@ -48,6 +49,7 @@ impl std::fmt::Debug for CmdArgs {
         write!(fmt, "file_format: {:?}", self.file_format)?;
         write!(fmt, "write_filename: {:?}", self.write_filename)?;
         write!(fmt, "item_type: {:?}", self.item_type)?;
+        write!(fmt, "amount: {:?}", self.amount)?;
         write!(fmt, "rp_id: {:?}", self.rp_id)?;
         write!(fmt, "rp_type: {:?}", self.rp_type)?;
         write!(fmt, "start_date: {:?}", self.start_date)?;
@@ -85,6 +87,7 @@ impl CommandArgs for CmdArgs {
         self.name = None;
         self.rp_id = None;
         self.rp_type = None;
+        self.amount = None;
         self.start_date = Date::default();
         self.end_date = Date::default();
         self.postcode = None;
@@ -113,6 +116,12 @@ impl CmdArgs {
     //mi set_item_type
     fn set_item_type(&mut self, item_type: &str) -> Result<(), Error> {
         self.item_type = Some(item_type.parse::<DbItemType>()?);
+        Ok(())
+    }
+
+    //mi set_amount
+    fn set_amount(&mut self, amount: &str) -> Result<(), Error> {
+        self.amount = Some(amount.parse::<Amount>()?);
         Ok(())
     }
 
@@ -505,6 +514,11 @@ impl CmdArgs {
             None,
             Self::set_rp_id,
         );
+    }
+
+    //fp arg_add_option_amount
+    pub fn arg_add_option_amount(builder: &mut CommandBuilder<Self>, required: bool) {
+        builder.add_arg_string("amount", None, "Amount", required, None, Self::set_amount);
     }
 
     //fp arg_add_option_rp_type

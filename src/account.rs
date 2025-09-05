@@ -87,7 +87,10 @@ pub struct Account {
     org: String,
     name: String,
     desc: AccountDesc,
-    transactions: OrderedTransactions<DbId>,
+    /// Bank transactions
+    ///
+    /// Ths
+    bank_transactions: OrderedTransactions<DbId>,
 }
 
 //ip Display for Account
@@ -101,12 +104,12 @@ impl std::fmt::Display for Account {
 impl Account {
     //cp new
     pub fn new(org: String, name: String, desc: AccountDesc) -> Self {
-        let transactions = OrderedTransactions::default();
+        let bank_transactions = OrderedTransactions::default();
         Self {
             org,
             name,
             desc,
-            transactions,
+            bank_transactions,
         }
     }
 
@@ -116,7 +119,7 @@ impl Account {
             org: &self.org,
             name: &self.name,
             desc: &self.desc,
-            num_transactions: self.transactions.len(),
+            num_transactions: self.bank_transactions.len(),
         }
     }
 
@@ -130,26 +133,26 @@ impl Account {
         &self.name
     }
 
-    //mp transactions_in_range
-    pub fn transactions_in_range(&self, date_range: DateRange) -> Vec<DbId> {
-        self.transactions.transactions_in_range(date_range)
+    //mp bank_transactions_in_range
+    pub fn bank_transactions_in_range(&self, date_range: DateRange) -> Vec<DbId> {
+        self.bank_transactions.transactions_in_range(date_range)
     }
 
-    //mp validate_transactions
-    pub fn validate_transactions(&self, db: &Database) -> Vec<(DbId, String)> {
+    //mp validate_bank_transactions
+    pub fn validate_bank_transactions(&self, db: &Database) -> Vec<(DbId, String)> {
         let bt_of_c = |c| {
-            db.get(self.transactions[c])
+            db.get(self.bank_transactions[c])
                 .unwrap()
                 .bank_transaction()
                 .unwrap()
         };
         let mut result = vec![];
-        let c = self.transactions.cursor_first();
+        let c = self.bank_transactions.cursor_first();
         eprintln!("{c:?}");
         if c.is_valid() {
             let bt = bt_of_c(c);
             let mut balance = bt.inner().balance() - bt.inner().balance_delta(); // balance *before* first transaction
-            for c in self.transactions.iter() {
+            for c in self.bank_transactions.iter() {
                 let bt = bt_of_c(c);
                 if bt.inner().balance() != balance + bt.inner().balance_delta() {
                     result.push((
@@ -196,11 +199,11 @@ impl Account {
                 db_bank_transaction.inner().description()
             );
         }
-        self.transactions.push_to_date(date, db_id);
+        self.bank_transactions.push_to_date(date, db_id);
         Ok(())
     }
 
-    //mp add_transactions
+    //mp add_bank_transactions
     /// Add a Vec of transactions to the account
     ///
     /// Any transactions for the same date should be in the correct
@@ -213,23 +216,23 @@ impl Account {
         &mut self,
         db: &Database,
         account_id: DbId,
-        transactions: Vec<BankTransaction>,
+        bank_transactions: Vec<BankTransaction>,
     ) -> Result<(), Vec<BankTransaction>> {
-        if transactions.is_empty() {
+        if bank_transactions.is_empty() {
             return Ok(());
         }
-        for t in transactions.iter() {
+        for t in bank_transactions.iter() {
             if t.account_desc() != &self.desc {
-                return Err(transactions);
+                return Err(bank_transactions);
             }
         }
         let mut errors = vec![];
-        for t in transactions.into_iter() {
+        for t in bank_transactions.into_iter() {
             if let Err(e) = self.add_bank_transaction(db, account_id, t) {
                 errors.push(e);
             }
         }
-        self.transactions.sort();
+        self.bank_transactions.sort();
         if errors.is_empty() {
             Ok(())
         } else {
@@ -239,7 +242,7 @@ impl Account {
 
     //mp rebuild
     pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
-        self.transactions.rebuild(database_rebuild)
+        self.bank_transactions.rebuild(database_rebuild)
     }
 }
 

@@ -13,8 +13,9 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let rp_query: RelatedPartyQuery = rp_type.into();
 
     println!("RelatedParties:");
-    for k in cmd_args.db.related_parties().db_ids() {
-        let member = cmd_args.db.get(k).unwrap().related_party().unwrap();
+    let db_ids = cmd_args.db.related_parties().db_ids();
+    for k in &db_ids {
+        let member = cmd_args.db.get(*k).unwrap().related_party().unwrap();
         let member = member.borrow();
         if !member.matches_query(&rp_query) {
             continue;
@@ -24,7 +25,22 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
             println!("      {d}");
         }
     }
-    CmdArgs::cmd_ok()
+    let summaries: Vec<_> = db_ids
+        .iter()
+        .map(|db_id| {
+            (
+                db_id,
+                cmd_args
+                    .db
+                    .get_related_party(*db_id)
+                    .unwrap()
+                    .borrow()
+                    .summary()
+                    .to_owned(),
+            )
+        })
+        .collect();
+    Ok(json::to_value(summaries).unwrap())
 }
 
 //fi add_fn

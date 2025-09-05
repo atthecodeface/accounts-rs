@@ -24,7 +24,14 @@
 //! are held within the bank)
 
 //a Imports
+use crate::indexed_vec::Idx;
 
 //a DbId
 //tp DbId
 crate::make_index!(DbId, usize, Some(0));
+
+impl DbId {
+    pub fn of_usize(id: usize) -> Self {
+        <Self as Idx>::from_usize(id)
+    }
+}

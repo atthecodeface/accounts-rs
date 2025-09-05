@@ -11,10 +11,42 @@ use crate::{Amount, Date, DbId};
 /// direct debit, etc
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum TransactionType {
+    /// Transfer between funds - debit and credit ids will be *fund*s
     #[default]
     FundTransfer,
+    /// For subs, tickets, etc - debit id is RP, credit id is *fund*
     FromRp,
+    /// For an invoice, expenses, etc - debit id is *fund* credit id is *rp*
     ToRp,
+    ///
+    CaptialRevaluation,
+}
+
+impl TransactionType {
+    pub fn is_to_rp(&self) -> bool {
+        matches!(self, TransactionType::ToRp)
+    }
+    pub fn is_from_rp(&self) -> bool {
+        matches!(self, TransactionType::ToRp)
+    }
+    pub fn is_revaluation(&self) -> bool {
+        matches!(self, TransactionType::CaptialRevaluation)
+    }
+    pub fn is_fund_transfer(&self) -> bool {
+        matches!(self, TransactionType::FundTransfer)
+    }
+}
+
+//ip Display for TransactionType
+impl std::fmt::Display for TransactionType {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            TransactionType::FundTransfer => write!(fmt, "FundTransfer"),
+            TransactionType::FromRp => write!(fmt, "FromRp"),
+            TransactionType::ToRp => write!(fmt, "ToRp"),
+            TransactionType::CaptialRevaluation => write!(fmt, "CapitalRevaluation"),
+        }
+    }
 }
 
 //a Transaction, DbTransaction
@@ -37,7 +69,7 @@ pub struct Transaction {
     debit_id: DbId,
     /// Credit side of transaction (could be Fund, BankTransaction, RelatedParty)
     credit_id: DbId,
-    /// Amount of a debit
+    /// Amount, always positive(?)
     amount: Amount,
     /// Notes
     notes: Vec<String>,
@@ -68,6 +100,11 @@ impl Transaction {
             credit_id,
             notes: vec![],
         }
+    }
+
+    //cp new_payment
+    pub fn new_payment(date: Date, amount: Amount, from_fund_id: DbId, to_id: DbId) -> Self {
+        Self::new(date, TransactionType::ToRp, amount, from_fund_id, to_id)
     }
 
     //ap date
