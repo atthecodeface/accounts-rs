@@ -336,6 +336,16 @@ impl Database {
         self.state.borrow().items.get(&id).cloned()
     }
 
+    //mp get_account
+    pub fn get_account(&self, id: DbId) -> Option<crate::DbAccount> {
+        self.state
+            .borrow()
+            .items
+            .get(&id)
+            .map(|m| m.account())
+            .flatten()
+    }
+
     //mp query
     pub fn query(&self, query: DbQuery) -> DatabaseQueryIter {
         DatabaseQueryIter::new(&self, query)

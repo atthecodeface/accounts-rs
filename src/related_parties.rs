@@ -24,15 +24,13 @@ impl RelatedPartiesCache {
         }
     }
     fn inserty_do(&mut self, db_id: DbId, descr: &str) {
-        if descr.len() < self.descr_len {
-            panic!(
-                "item {db_id} has descriptor {descr} that is too short < {}",
-                self.descr_len
-            );
-        }
-        let key = &descr.as_bytes()[0..self.descr_len];
+        let len = descr.len().min(self.descr_len);
+        let key = &descr.as_bytes()[0..len];
         if let Some(collision) = self.parties.get_mut(key) {
-            *collision = DbId::none();
+            if *collision != db_id {
+                *collision = DbId::none();
+            }
+            eprintln!("Collision {db_id} '{descr}' {collision}");
         } else {
             self.parties.insert(key.to_vec(), db_id);
         }
@@ -96,7 +94,7 @@ impl RelatedParties {
         let mut descr_len = self.min_len;
         if let Some(c) = self.caches.last() {
             descr_len = c.descr_len();
-            if descr_len >= self.max_len {
+            if descr_len > self.max_len {
                 eprintln!(
                     "add_new_cache: descr_len >= self.max_len {} {}",
                     descr_len, self.max_len

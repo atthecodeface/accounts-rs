@@ -20,6 +20,9 @@ serde_yaml = "0.9.34"
 [dependencies.thunderclap]
 path = "../thunderclap"
 
+[dependencies.thunderclap_httpd]
+path = "../thunderclap_httpd"
+
 [dependencies.csv]
 version = "1.3"
 

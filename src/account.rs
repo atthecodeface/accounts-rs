@@ -6,10 +6,74 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::Idx;
 use crate::{
-    DateRange, AccountDesc, BankTransaction, Database, DatabaseRebuild, Date, DbId, Error, OrderedTransactions,
+    AccountDesc, BankTransaction, Database, DatabaseRebuild, Date, DateRange, DbId, Error,
+    OrderedTransactions,
 };
 
 //a Account
+//tp AccountSummaryOwned
+/// The account for delivery as a summary, without all the transactions
+#[derive(Debug, Serialize)]
+pub struct AccountSummaryOwned {
+    org: String,
+    name: String,
+    desc: AccountDesc,
+    num_transactions: usize,
+}
+
+//ip AccountSummaryOwned
+impl AccountSummaryOwned {
+    //ap summary
+    pub fn summary<'a>(&'a self) -> AccountSummary<'a> {
+        AccountSummary {
+            org: &self.org,
+            name: &self.name,
+            desc: &self.desc,
+            num_transactions: self.num_transactions,
+        }
+    }
+}
+
+//ip Display for AccountSummaryOwned
+impl std::fmt::Display for AccountSummaryOwned {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        self.summary().fmt(fmt)
+    }
+}
+
+//tp AccountSummary
+/// The account for delivery as a summary, without all the transactions
+#[derive(Debug, Serialize)]
+pub struct AccountSummary<'a> {
+    org: &'a str,
+    name: &'a str,
+    desc: &'a AccountDesc,
+    num_transactions: usize,
+}
+
+//ip Display for AccountSummary
+impl<'a> std::fmt::Display for AccountSummary<'a> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            fmt,
+            "Account '{}' with '{}' : {} : with {} transactions",
+            self.name, self.org, self.desc, self.num_transactions
+        )
+    }
+}
+
+//ip AccountSummary
+impl<'a> AccountSummary<'a> {
+    pub fn to_owned(&self) -> AccountSummaryOwned {
+        AccountSummaryOwned {
+            org: self.org.to_owned(),
+            name: self.name.to_owned(),
+            desc: self.desc.clone(),
+            num_transactions: self.num_transactions,
+        }
+    }
+}
+
 //tp Account
 /// An account which contains an ordered Vec of references to account
 /// transactions
@@ -29,14 +93,7 @@ pub struct Account {
 //ip Display for Account
 impl std::fmt::Display for Account {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(
-            fmt,
-            "Account '{}' with '{}' : {} : with {} transactions",
-            self.name,
-            self.org,
-            self.desc,
-            self.transactions.len()
-        )
+        self.summary().fmt(fmt)
     }
 }
 
@@ -53,6 +110,16 @@ impl Account {
         }
     }
 
+    //ap summary
+    pub fn summary<'a>(&'a self) -> AccountSummary<'a> {
+        AccountSummary {
+            org: &self.org,
+            name: &self.name,
+            desc: &self.desc,
+            num_transactions: self.transactions.len(),
+        }
+    }
+
     //ap org
     pub fn org(&self) -> &str {
         &self.org
@@ -64,7 +131,7 @@ impl Account {
     }
 
     //mp transactions_in_range
-    pub fn transactions_in_range(&self, date_range:DateRange) -> Vec<DbId> {
+    pub fn transactions_in_range(&self, date_range: DateRange) -> Vec<DbId> {
         self.transactions.transactions_in_range(date_range)
     }
 

@@ -62,7 +62,11 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     for x in dbs.iter() {
         println!("{} : {}", x, cmd_args.db.get(*x).unwrap());
     }
-    CmdArgs::cmd_ok()
+    let dbs: Vec<_> = dbs
+        .iter()
+        .map(|db_id| cmd_args.db.get(*db_id).clone())
+        .collect();
+    Ok(json::to_value(dbs).unwrap())
 }
 
 //mp list_cmd

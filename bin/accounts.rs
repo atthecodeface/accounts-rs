@@ -7,16 +7,31 @@ use crate::CmdArgs;
 use rust_accounts::{Account, AccountDesc, Date, Error};
 
 //a Accounts
-//a Write
 //fi list_fn
 fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     println!("Accounts:");
-    for k in cmd_args.db.accounts().ids() {
-        let account = cmd_args.db.get(k).unwrap().account().unwrap();
+    let accounts = cmd_args.db.accounts().ids();
+    for k in &accounts {
+        let account = cmd_args.db.get(*k).unwrap().account().unwrap();
         let account = account.borrow();
         println!("  {k} : {} - {}", account.org(), account.name());
     }
-    CmdArgs::cmd_ok()
+    let account_summaries: Vec<_> = accounts
+        .iter()
+        .map(|db_id| {
+            (
+                db_id,
+                cmd_args
+                    .db
+                    .get_account(*db_id)
+                    .unwrap()
+                    .borrow()
+                    .summary()
+                    .to_owned(),
+            )
+        })
+        .collect();
+    Ok(json::to_value(account_summaries).unwrap())
 }
 
 //mi add_fn
@@ -54,8 +69,8 @@ fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let db_acc = cmd_args.get_account(name)?;
 
     let transactions = db_acc.inner().transactions_in_range(date_range);
-    for db_id in transactions.into_iter() {
-        let bt = cmd_args.db.get(db_id).unwrap().bank_transaction().unwrap();
+    for db_id in transactions.iter() {
+        let bt = cmd_args.db.get(*db_id).unwrap().bank_transaction().unwrap();
         let bt = bt.inner();
         let date = bt.date();
         let desc = bt.description();
@@ -64,7 +79,7 @@ fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
         let start_balance = end_balance - balance_delta;
         println!("{date} {desc:100} {start_balance:12} {balance_delta:12} {end_balance:12}");
     }
-    CmdArgs::cmd_ok()
+    Ok(json::to_value(transactions).unwrap())
 }
 
 //mi validate_cmd

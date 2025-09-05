@@ -74,7 +74,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     build.add_subcommand(database::database_cmd());
 
     let mut cmd_args = CmdArgs::default();
-    let mut command = build.main(true, true);
-    command.execute_env(&mut cmd_args)?;
+    let mut command_set = thunderclap_httpd::CommandSetHttpd::build(build, true, true);
+    command_set.execute_env(&mut cmd_args)?;
+    // thunderclap_httpd::execute_env(&mut command, &mut cmd_args)?;
+    // command.execute_env(&mut cmd_args)?;
     Ok(())
 }

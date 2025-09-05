@@ -68,10 +68,11 @@ impl From<Option<RelatedPartyType>> for RelatedPartyQuery {
     }
 }
 
-//a RelatedParty
-//tp RelatedParty
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct RelatedParty {
+//a RelatedPartyPartySummary
+//tp RelatedPartySummaryOwned
+/// The related for delivery as a summary, without all the transactions
+#[derive(Debug, Serialize)]
+pub struct RelatedPartySummaryOwned {
     name: String,
     rp_id: usize,
     rp_type: RelatedPartyType,
@@ -81,15 +82,65 @@ pub struct RelatedParty {
     postcode: String,
     telephone: String,
     tax_name: String,
-    last_gift_aid: Option<Date>,
-    account_descrs: Vec<String>,
-    aliases: Vec<String>,
-    transactions: OrderedTransactions<DbId>,
-    invoices: OrderedTransactions<DbId>,
+    last_gift_aid: Date,
+    num_account_descrs: usize,
+    num_aliases: usize,
+    num_transactions: usize,
+    num_invoices: usize,
 }
 
-//ip Display for RelatedParty
-impl std::fmt::Display for RelatedParty {
+//ip RelatedPartySummaryOwned
+impl RelatedPartySummaryOwned {
+    //ap summary
+    pub fn summary<'a>(&'a self) -> RelatedPartySummary<'a> {
+        RelatedPartySummary {
+            name: &self.name,
+            rp_id: self.rp_id,
+            rp_type: self.rp_type,
+            address: &self.address,
+            email: &self.email,
+            house_number: &self.house_number,
+            postcode: &self.postcode,
+            telephone: &self.telephone,
+            tax_name: &self.tax_name,
+            last_gift_aid: self.last_gift_aid,
+            num_account_descrs: self.num_account_descrs,
+            num_aliases: self.num_aliases,
+            num_transactions: self.num_transactions,
+            num_invoices: self.num_invoices,
+        }
+    }
+}
+
+//ip Display for RelatedPartySummaryOwned
+impl std::fmt::Display for RelatedPartySummaryOwned {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        self.summary().fmt(fmt)
+    }
+}
+
+//tp RelatedPartySummary
+/// The related for delivery as a summary, without all the transactions
+#[derive(Debug, Serialize)]
+pub struct RelatedPartySummary<'a> {
+    name: &'a str,
+    rp_id: usize,
+    rp_type: RelatedPartyType,
+    address: &'a str,
+    email: &'a str,
+    house_number: &'a str,
+    postcode: &'a str,
+    telephone: &'a str,
+    tax_name: &'a str,
+    last_gift_aid: Date,
+    num_account_descrs: usize,
+    num_aliases: usize,
+    num_transactions: usize,
+    num_invoices: usize,
+}
+
+//ip Display for RelatedPartySummary
+impl<'a> std::fmt::Display for RelatedPartySummary<'a> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         writeln!(
             fmt,
@@ -116,6 +167,55 @@ impl std::fmt::Display for RelatedParty {
     }
 }
 
+//ip RelatedPartySummary
+impl<'a> RelatedPartySummary<'a> {
+    pub fn to_owned(&self) -> RelatedPartySummaryOwned {
+        RelatedPartySummaryOwned {
+            name: self.name.to_owned(),
+            rp_id: self.rp_id,
+            rp_type: self.rp_type,
+            address: self.address.to_owned(),
+            email: self.email.to_owned(),
+            house_number: self.house_number.to_owned(),
+            postcode: self.postcode.to_owned(),
+            telephone: self.telephone.to_owned(),
+            tax_name: self.tax_name.to_owned(),
+            last_gift_aid: self.last_gift_aid,
+            num_account_descrs: self.num_account_descrs,
+            num_aliases: self.num_aliases,
+            num_transactions: self.num_transactions,
+            num_invoices: self.num_invoices,
+        }
+    }
+}
+
+//a RelatedParty
+//tp RelatedParty
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct RelatedParty {
+    name: String,
+    rp_id: usize,
+    rp_type: RelatedPartyType,
+    address: String,
+    email: String,
+    house_number: String,
+    postcode: String,
+    telephone: String,
+    tax_name: String,
+    last_gift_aid: Date,
+    account_descrs: Vec<String>,
+    aliases: Vec<String>,
+    transactions: OrderedTransactions<DbId>,
+    invoices: OrderedTransactions<DbId>,
+}
+
+//ip Display for RelatedParty
+impl std::fmt::Display for RelatedParty {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        self.summary().fmt(fmt)
+    }
+}
+
 //ip RelatedParty
 impl RelatedParty {
     //cp new
@@ -125,6 +225,26 @@ impl RelatedParty {
             rp_id,
             rp_type,
             ..Default::default()
+        }
+    }
+
+    //ap summary
+    pub fn summary<'a>(&'a self) -> RelatedPartySummary<'a> {
+        RelatedPartySummary {
+            name: &self.name,
+            rp_id: self.rp_id,
+            rp_type: self.rp_type,
+            address: &self.address,
+            email: &self.email,
+            house_number: &self.house_number,
+            postcode: &self.postcode,
+            telephone: &self.telephone,
+            tax_name: &self.tax_name,
+            last_gift_aid: self.last_gift_aid,
+            num_account_descrs: self.account_descrs.len(),
+            num_aliases: self.aliases.len(),
+            num_transactions: self.transactions.len(),
+            num_invoices: self.invoices.len(),
         }
     }
 
@@ -224,8 +344,8 @@ impl RelatedParty {
     }
 
     //ap last_gift_aid
-    pub fn last_gift_aid(&self) -> Option<&Date> {
-        self.last_gift_aid.as_ref()
+    pub fn last_gift_aid(&self) -> Date {
+        self.last_gift_aid
     }
 
     //ap matches_query
