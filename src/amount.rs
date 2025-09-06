@@ -54,6 +54,14 @@ impl std::ops::SubAssign<Amount> for Amount {
     }
 }
 
+//ip Neg for Amount
+impl std::ops::Neg for Amount {
+    type Output = Self;
+    fn neg(self) -> Self {
+        (-self.value).into()
+    }
+}
+
 //ip Amount
 impl Amount {
     //ci of_f32

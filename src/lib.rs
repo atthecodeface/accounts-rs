@@ -37,6 +37,7 @@ mod error;
 pub use error::Error;
 
 mod indexed_vec;
+pub use indexed_vec::Idx;
 
 mod base_types;
 pub use base_types::{Date, DateRange, Entity, FileFormat, FileType, Ordering};
@@ -58,7 +59,7 @@ pub use db_id::DbId;
 
 #[macro_use]
 mod db_item;
-pub use db_item::{DbItem, DbItemKind, DbItemType};
+pub use db_item::{DbItem, DbItemKind, DbItemKindObj, DbItemType};
 
 mod db_query;
 pub use db_query::DbQuery;

@@ -4,7 +4,6 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::indexed_vec::Idx;
 use crate::{Amount, Database, DatabaseRebuild, Date, DbId, Error, OrderedTransactions};
 
 //a Invoice
@@ -157,10 +156,17 @@ impl Invoice {
         self.supplier_id = database_rebuild.get_new_id("Invoice supplier", self.supplier_id)?;
         self.transactions.rebuild(database_rebuild)
     }
+
+    //mp show_name
+    pub fn show_name(&self) -> String {
+        self.to_string()
+    }
+
+    //zz All done
 }
 
 //tp DbInvoice
-crate::make_db_item!(DbInvoice, Invoice);
+crate::make_db_item!(DbInvoice, Invoice, show_name);
 
 //a DbInvoices
 //ti DbInvoicesState

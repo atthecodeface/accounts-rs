@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::indexed_vec::Idx;
 use crate::{
-    AccountDesc, BankTransaction, Database, DatabaseRebuild, Date, DateRange, DbId, Error,
+    AccountDesc, Amount, BankTransaction, Database, DatabaseRebuild, Date, DateRange, DbId, Error,
     OrderedTransactions,
 };
 
@@ -89,7 +89,6 @@ pub struct Account {
     desc: AccountDesc,
     /// Bank transactions
     ///
-    /// Ths
     bank_transactions: OrderedTransactions<DbId>,
 }
 
@@ -131,6 +130,52 @@ impl Account {
     //ap name
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    //mp get_bank_transaction
+    /// Get a bank transaction that matches on the date with the given related party
+    ///
+    /// Return the number matching, and the first or nth match
+    ///
+    /// If amount is non-zero then only analyze tranascations of that amount
+    pub fn get_bank_transaction(
+        &self,
+        db: &Database,
+        date: Date,
+        rp_db_id: DbId,
+        amount: Amount,
+        nth: Option<usize>,
+    ) -> Option<(DbId, usize)> {
+        let mut number_found = 0;
+        let mut found_db_id = None;
+        let Some(transactions) = self.bank_transactions.of_date(date) else {
+            return None;
+        };
+        for t_id in transactions {
+            let Some(db_bt) = db.get_bank_transaction(*t_id) else {
+                continue;
+            };
+            if db_bt.inner().related_party() != rp_db_id {
+                continue;
+            }
+            if db_bt.inner().date() != date {
+                continue;
+            }
+            if !amount.is_zero() {
+                if db_bt.inner().credit() != amount && db_bt.inner().debit() != amount {
+                    continue;
+                }
+            }
+            if found_db_id.is_none() && (nth.is_none() || nth == Some(number_found)) {
+                found_db_id = Some(*t_id);
+            }
+            number_found += 1;
+        }
+        if found_db_id.is_some() {
+            Some((found_db_id.unwrap(), number_found))
+        } else {
+            None
+        }
     }
 
     //mp bank_transactions_in_range
@@ -203,7 +248,7 @@ impl Account {
         Ok(())
     }
 
-    //mp add_bank_transactions
+    //mp add_transactions
     /// Add a Vec of transactions to the account
     ///
     /// Any transactions for the same date should be in the correct
@@ -244,10 +289,17 @@ impl Account {
     pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
         self.bank_transactions.rebuild(database_rebuild)
     }
+
+    //mp show_name
+    pub fn show_name(&self) -> String {
+        self.name().to_string()
+    }
+
+    //zz All done
 }
 
 //tp DbAccount
-crate::make_db_item!(DbAccount, Account);
+crate::make_db_item!(DbAccount, Account, show_name);
 
 //a DbAccounts
 //ti DbAccountsState

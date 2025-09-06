@@ -1,14 +1,44 @@
 //a Documentation
 #![allow(dead_code)]
 
-//! The database consists of tables:
+//! The database consists of a set of DbItems each with a unique DbId.
 //!
-//! * BankTransactions
+//! Each DbItem is one of:
 //!
-//!     All of the bank transactions for the bank accounts
+//! * Account - A bank account, invesment account, cashbox, etc
 //!
-//! The database ultimately contains DbItems
+//! * BankTransaction - A credit/debit transaction on an Account which has a date and a value
 //!
+//! * Fund - An abstract 'holder' of value
+//!
+//! * Invoice - A piece of paper indicating an amount to be paid for a number of reasons
+//!
+//! * RelatedParty - Friend, Member, Supplier, etc - anyone who can pay or be paid
+//!
+//! * Transaction - An accounting transaction, that is part of income
+//!   from a related party or expense to a related party or fund
+//!   revaluation or fund transfer etc
+//!
+//! A BankTransaction is expected to cover one or more Transactions
+//!
+//! An Invoice is expected to use one or more Transactions to satisfy
+//!   it - which presumably are also part of one ore more
+//!   BankTransactions
+//!
+//! A donation or other income is expected to be a Transaction, presumably with one or more
+//!   BankTransactions
+//!
+//! When all is sorted:
+//!
+//! Every Transaction is associated correctly with two funds, or one fund and a related party
+//!
+//! Every BankTransaction has associated Transactions that add up to the correct amount
+//!
+//! Every Fund has a starting balance with transactions that lead to the ending balance
+//!
+//! Every Account has a starting balance with bank transactions that lead to the ending balance
+//!
+//! Every related party has a set of transactions that are all included in a fund
 //!
 //! All DbItems have a unique DbId, are will be of a type such as
 //! Transaction, Entity, etc; they implement DbItemKind which provides
@@ -16,14 +46,11 @@
 //!
 //! The DbItems thus have a DbId, DbItemType, and DbItemTypeE.
 //!
-//! A DbAccounts contains all the accounts as a Vec of DbAccount,
-//! which is a DbItem of an Account; it can map from an AccountDesc to
-//! a specific DbAccount
+//! The balance sheet is the balance values in the funds
 //!
-//! An account has strings for bank name and account name, an
-//! AccounDesc, and a Vec of all of the transactions by reference to
-//! their DbId. The Vec is in time-order (or the order in which they
-//! are held within the bank)
+//! The income/expenditure for a fund is the aggregate of the
+//! transactions on the fund; the fund keeps a list of transactions
+//! ordered by date
 
 //a Imports
 use serde::{Deserialize, Deserializer, Serializer};
@@ -367,9 +394,23 @@ impl Database {
         &self.bank_transactions
     }
 
+    //mp has_db_id
+    pub fn has_db_id(&self, id: DbId) -> bool {
+        self.state.borrow().items.contains_key(&id)
+    }
+
     //mp get
     pub fn get(&self, id: DbId) -> Option<DbItem> {
         self.state.borrow().items.get(&id).cloned()
+    }
+
+    //mp show_name
+    pub fn show_name(&self, id: DbId) -> String {
+        if let Some(item) = self.get(id) {
+            item.show_name()
+        } else {
+            format!("DbId{id}")
+        }
     }
 
     //mp get_account
@@ -382,6 +423,26 @@ impl Database {
             .flatten()
     }
 
+    //mp get_bank_transaction
+    pub fn get_bank_transaction(&self, id: DbId) -> Option<crate::DbBankTransaction> {
+        self.state
+            .borrow()
+            .items
+            .get(&id)
+            .map(|m| m.bank_transaction())
+            .flatten()
+    }
+
+    //mp get_fund
+    pub fn get_fund(&self, id: DbId) -> Option<crate::DbFund> {
+        self.state
+            .borrow()
+            .items
+            .get(&id)
+            .map(|m| m.fund())
+            .flatten()
+    }
+
     //mp get_related_party
     pub fn get_related_party(&self, id: DbId) -> Option<crate::DbRelatedParty> {
         self.state
@@ -389,6 +450,16 @@ impl Database {
             .items
             .get(&id)
             .map(|m| m.related_party())
+            .flatten()
+    }
+
+    //mp get_transaction
+    pub fn get_transaction(&self, id: DbId) -> Option<crate::DbTransaction> {
+        self.state
+            .borrow()
+            .items
+            .get(&id)
+            .map(|m| m.transaction())
             .flatten()
     }
 
@@ -438,10 +509,22 @@ impl Database {
         db_id
     }
 
+    //mp add_transaction
+    /// The transaction is added to db.transactions, and:
+    ///
+    ///   If a ToRp transaction, then to the fund it is from and to the RP it is to
+    pub fn add_transaction(&self, transaction: Transaction) -> (DbId, bool) {
+        let (db_id, item) = self.add_item(transaction);
+        let db_t = item.transaction().unwrap();
+        self.transactions.add_transaction(db_t.clone());
+        let okay = db_t.inner().update_related_dbs(self, db_id);
+        (db_id, okay)
+    }
+
     //mp add_bank_transaction
     /// The bank transaction must *already* have been added to db.bank_transactions
     pub fn add_bank_transaction(&self, bank_transaction: BankTransaction) -> DbId {
-        let (db_id, item) = self.add_item(bank_transaction);
+        let (db_id, _item) = self.add_item(bank_transaction);
         db_id
     }
 

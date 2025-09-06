@@ -3,8 +3,8 @@ use regex::Regex;
 
 use crate::indexed_vec::Idx;
 use crate::{
-    Date, DateRange, DbAccount, DbBankTransaction, DbFund, DbInvoice, DbItemType, DbRelatedParty,
-    DbTransaction, RelatedPartyQuery, RelatedPartyType,
+    Date, DateRange, DbAccount, DbBankTransaction, DbFund, DbId, DbInvoice, DbItemType,
+    DbRelatedParty, DbTransaction, RelatedPartyQuery, RelatedPartyType,
 };
 
 //a DbQuery
@@ -24,6 +24,9 @@ pub struct DbQuery {
     /// An ID that the item must have - this might be a related party
     /// ID, for example
     id: Option<usize>,
+
+    /// A DbId that the item must have. This can be DbId::is_none() for no match
+    db_id: DbId,
 
     /// Name that must be start with for a match
     name_match: Option<String>,
@@ -87,6 +90,12 @@ impl DbQuery {
     //cp with_id
     pub fn with_id(mut self, id: Option<usize>) -> Self {
         self.id = id;
+        self
+    }
+
+    //cp with_db_id
+    pub fn with_db_id(mut self, db_id: DbId) -> Self {
+        self.db_id = db_id;
         self
     }
 
@@ -198,6 +207,15 @@ impl DbQuery {
         }
     }
 
+    //mi matches_db_id
+    fn matches_db_id(&self, db_id: DbId) -> bool {
+        if !self.db_id.is_none() {
+            db_id == self.db_id
+        } else {
+            true
+        }
+    }
+
     //mp matches_account - check name
     pub fn matches_account(&self, d: &DbAccount) -> bool {
         self.matches_name(d.inner().name())
@@ -238,6 +256,12 @@ impl DbQuery {
 
     //mp matches_transaction
     pub fn matches_transaction(&self, d: &DbTransaction) -> bool {
+        if !self.matches_date_range(d.inner().date()) {
+            return false;
+        }
+        if !self.matches_db_id(d.inner().db_ids().0) && !self.matches_db_id(d.inner().db_ids().1) {
+            return false;
+        }
         true
     }
 

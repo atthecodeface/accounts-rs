@@ -4,7 +4,7 @@ pub use thunderclap::json;
 use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::CmdArgs;
-use rust_accounts::{Date, DbId, Error, Invoice};
+use rust_accounts::{DbId, Error, Invoice};
 
 //a Invoices
 //fi list_fn
@@ -42,7 +42,7 @@ fn add_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     let reason = &cmd_args.string_args[0];
     let filename = &cmd_args.string_args[1];
     let supplier_id = DbId::of_usize(cmd_args.rp_id.unwrap());
-    let amount = cmd_args.amount.unwrap();
+    let amount = cmd_args.amount;
     let invoice = Invoice::new(
         supplier_id,
         reason.to_string(),
@@ -54,13 +54,13 @@ fn add_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
 }
 
 //mi validate_fn
-fn validate_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
+fn validate_fn(_cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
     CmdArgs::cmd_ok()
 }
 
 //mi validate_cmd
 fn validate_cmd() -> CommandBuilder<CmdArgs> {
-    let mut cmd = CommandBuilder::with_handler(
+    let cmd = CommandBuilder::with_handler(
         Command::new("validate").about("Validate the invoice transactions"),
         validate_fn,
     );

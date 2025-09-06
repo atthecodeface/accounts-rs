@@ -4,7 +4,7 @@ pub use thunderclap::json;
 use thunderclap::{CommandArgs, CommandBuilder};
 
 use crate::CmdArgs;
-use rust_accounts::{Account, AccountDesc, Date, Error};
+use rust_accounts::{Account, AccountDesc, Error};
 
 //a Accounts
 //fi list_fn
@@ -50,8 +50,8 @@ fn add_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
 
 //mi validate_fn
 fn validate_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
-    let name = &cmd_args.string_args[0];
-    let db_acc = cmd_args.get_account(name)?;
+    let name = cmd_args.next_string_arg()?;
+    let db_acc = cmd_args.get_account_by_name(&name)?;
 
     let errors = db_acc.inner().validate_bank_transactions(&cmd_args.db);
     if !errors.is_empty() {
@@ -64,9 +64,9 @@ fn validate_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
 
 //mi transactions_fn
 fn transactions_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
-    let name = &cmd_args.string_args[0];
+    let name = cmd_args.next_string_arg()?;
+    let db_acc = cmd_args.get_account_by_name(&name)?;
     let date_range = cmd_args.get_date_range();
-    let db_acc = cmd_args.get_account(name)?;
 
     let bank_transactions = db_acc.inner().bank_transactions_in_range(date_range);
     for db_id in bank_transactions.iter() {

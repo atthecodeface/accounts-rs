@@ -13,6 +13,10 @@ pub trait Idx:
             .and_then(|v| if self.index() != v { None } else { Some(true) })
             .unwrap_or(false)
     }
+    fn is_some(self) -> bool {
+        assert!(Self::NONE.is_some());
+        !self.is_none()
+    }
     fn opt_index(self) -> Option<usize> {
         let v = self.index();
         if let Some(none) = Self::NONE {

@@ -45,21 +45,21 @@ fn list_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
 
 //fi add_fn
 fn add_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
-    let name = &cmd_args.string_args[0];
+    let name = cmd_args.next_string_arg()?;
     let rp_id = cmd_args.rp_id.unwrap();
     let rp_type = cmd_args.rp_type.unwrap();
 
-    let rp = RelatedParty::new(name.into(), rp_id, rp_type);
+    let rp = RelatedParty::new(name, rp_id, rp_type);
     let db_id = cmd_args.db.add_related_party(rp);
     Ok(json::to_value(db_id).unwrap())
 }
 
 //fi add_alias_fn
 fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
-    let name = &cmd_args.string_args[0];
+    let name = cmd_args.next_string_arg()?;
     let clear = cmd_args.clear;
 
-    let db_m = cmd_args.get_member(name)?; // related_party(name, RelatedPartyQuery::Rp(RelatedPartyType::Member))?;
+    let db_m = cmd_args.get_related_party_by_name(&name)?;
     cmd_args
         .db
         .related_parties()
@@ -79,10 +79,10 @@ fn add_alias_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
 
 //fi add_account_descr_fn
 fn add_account_descr_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
-    let name = &cmd_args.string_args[0];
+    let name = cmd_args.next_string_arg()?;
     let clear = cmd_args.clear;
 
-    let db_m = cmd_args.get_member(name)?;
+    let db_m = cmd_args.get_related_party_by_name(&name)?;
     if clear {
         db_m.inner_mut().clear_account_descr();
     }
@@ -94,10 +94,10 @@ fn add_account_descr_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
 
 //fi change_data_fn
 fn change_data_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
-    let name = &cmd_args.string_args[0];
+    let name = cmd_args.next_string_arg()?;
     let clear = cmd_args.clear;
 
-    let db_m = cmd_args.get_related_party(name)?;
+    let db_m = cmd_args.get_related_party_by_name(&name)?;
     if clear {
         db_m.inner_mut().clear_address_info();
     }

@@ -1,10 +1,10 @@
 //a Imports
 use clap::Command;
 use thunderclap::json;
-use thunderclap::{CommandArgs, CommandBuilder};
+use thunderclap::CommandBuilder;
 
 use crate::CmdArgs;
-use rust_accounts::{Account, AccountDesc, Date, DbQuery, Error};
+use rust_accounts::{DbQuery, Error};
 
 //a Query
 //mi query_fn
@@ -30,9 +30,12 @@ fn query_fn(cmd_args: &mut CmdArgs) -> Result<json::Value, Error> {
 
     println!("{query}");
     let db_query: Vec<_> = cmd_args.db.query(query).collect();
-    // for x in db_query.iter() {
-    // println!("{} : {}", x, cmd_args.db.get(*x).unwrap());
-    // }
+
+    if cmd_args.verbose {
+        for x in db_query.iter() {
+            println!("{} : {}", x, cmd_args.db.get(*x).unwrap());
+        }
+    }
 
     Ok(json::to_value(db_query).unwrap())
 }

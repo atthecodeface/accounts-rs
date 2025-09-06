@@ -5,10 +5,11 @@ use thunderclap::json;
 use thunderclap::json::JsonValueConvert;
 use thunderclap::{CommandArgs, CommandBuilder};
 
+// use rust_accounts::Idx;
 use rust_accounts::RelatedPartyQuery;
 use rust_accounts::RelatedPartyType;
 use rust_accounts::{Amount, Database, Date, DateRange, Error, FileFormat, FileType};
-use rust_accounts::{DbAccount, DbFund, DbItemType, DbRelatedParty};
+use rust_accounts::{DbAccount, DbBankTransaction, DbFund, DbId, DbItemType, DbRelatedParty};
 
 //a CmdArgs
 //tp CmdArgs
@@ -21,8 +22,9 @@ pub struct CmdArgs {
 
     pub write_filename: String,
     pub item_type: Option<DbItemType>,
+    pub db_id: Vec<DbId>,
     pub rp_id: Option<usize>,
-    pub amount: Option<Amount>,
+    pub amount: Amount,
     pub rp_type: Option<RelatedPartyType>,
     pub start_date: Date,
     pub end_date: Date,
@@ -35,9 +37,13 @@ pub struct CmdArgs {
     pub name: Option<String>,
     pub desc: Option<String>,
     pub id: Option<usize>,
+    pub account: Option<String>,
     pub string_args: Vec<String>,
     pub usize_args: Vec<usize>,
     pub value_args: Vec<Rc<json::Value>>,
+    pub string_args_index: usize,
+    pub usize_args_index: usize,
+    pub value_args_index: usize,
 }
 
 //ip Debug for CmdArgs
@@ -50,6 +56,7 @@ impl std::fmt::Debug for CmdArgs {
         write!(fmt, "write_filename: {:?}", self.write_filename)?;
         write!(fmt, "item_type: {:?}", self.item_type)?;
         write!(fmt, "amount: {:?}", self.amount)?;
+        write!(fmt, "db_id: {:?}", self.db_id)?;
         write!(fmt, "rp_id: {:?}", self.rp_id)?;
         write!(fmt, "rp_type: {:?}", self.rp_type)?;
         write!(fmt, "start_date: {:?}", self.start_date)?;
@@ -62,6 +69,7 @@ impl std::fmt::Debug for CmdArgs {
         write!(fmt, "tax_name: {:?}", self.tax_name)?;
         write!(fmt, "name: {:?}", self.name)?;
         write!(fmt, "desc: {:?}", self.desc)?;
+        write!(fmt, "account: {:?}", self.account)?;
         write!(fmt, "id: {:?}", self.id)?;
         write!(fmt, "}}")
     }
@@ -85,9 +93,10 @@ impl CommandArgs for CmdArgs {
 
         self.id = None;
         self.name = None;
+        self.db_id = vec![];
         self.rp_id = None;
         self.rp_type = None;
-        self.amount = None;
+        self.amount = Amount::default();
         self.start_date = Date::default();
         self.end_date = Date::default();
         self.postcode = None;
@@ -96,6 +105,10 @@ impl CommandArgs for CmdArgs {
         self.email = None;
         self.telephone = None;
         self.tax_name = None;
+
+        self.string_args_index = 0;
+        self.usize_args_index = 0;
+        self.value_args_index = 0;
     }
 }
 
@@ -121,7 +134,7 @@ impl CmdArgs {
 
     //mi set_amount
     fn set_amount(&mut self, amount: &str) -> Result<(), Error> {
-        self.amount = Some(amount.parse::<Amount>()?);
+        self.amount = amount.parse::<Amount>()?;
         Ok(())
     }
 
@@ -131,9 +144,42 @@ impl CmdArgs {
         Ok(())
     }
 
+    //mi set_db_id
+    fn set_db_id(&mut self, db_id: &Rc<serde_json::Value>) -> Result<(), Error> {
+        if let Some(db_id) = db_id.as_u64() {
+            let db_id = DbId::of_usize(db_id as usize);
+            if !self.db.has_db_id(db_id) {
+                Err(format!("Database does not contain ID {db_id}").into())
+            } else {
+                self.db_id.push(db_id);
+                Ok(())
+            }
+        } else if let Some(db_id_array) = db_id.as_array() {
+            for db_id in db_id_array {
+                let Some(db_id) = db_id.as_u64() else {
+                    return Err(
+                        format!("db_id was not an array of database ids, got {db_id}").into(),
+                    );
+                };
+                let db_id = DbId::of_usize(db_id as usize);
+                if !self.db.has_db_id(db_id) {
+                    return Err(format!("Database does not contain ID {db_id}").into());
+                }
+                self.db_id.push(db_id);
+            }
+            Ok(())
+        } else {
+            Err(format!("Value {db_id} must be an array of id or a single id").into())
+        }
+    }
+
     //mi set_rp_id
-    fn set_rp_id(&mut self, rp_id: usize) -> Result<(), Error> {
-        self.rp_id = Some(rp_id);
+    fn set_rp_id(&mut self, rp_id: &str) -> Result<(), Error> {
+        if let Some(db_rp) = self.db.related_parties().get_party_of_str(rp_id) {
+            self.rp_id = Some(db_rp.inner().rp_id());
+        } else {
+            self.rp_id = Some(rp_id.parse::<usize>().map_err(|_| format!("Failed to parse rp_id '{rp_id}' - it could be a related party name, or an RP id integer"))?);
+        }
         Ok(())
     }
 
@@ -152,6 +198,19 @@ impl CmdArgs {
     //mi set_desc
     fn set_desc(&mut self, s: &str) -> Result<(), Error> {
         self.desc = Some(s.into());
+        Ok(())
+    }
+
+    //mi set_account
+    fn set_account(&mut self, s: &str) -> Result<(), Error> {
+        self.account = Some(s.into());
+        Ok(())
+    }
+
+    //mi set_related_party
+    fn set_related_party(&mut self, s: &str) -> Result<(), Error> {
+        let db_rp = self.get_related_party_by_name(s)?;
+        self.rp_id = Some(db_rp.inner().rp_id());
         Ok(())
     }
 
@@ -301,7 +360,19 @@ impl CmdArgs {
     }
 
     //ap get_related_party
-    pub fn get_related_party(&self, name: &str) -> Result<DbRelatedParty, Error> {
+    pub fn get_related_party(&self) -> Result<DbRelatedParty, Error> {
+        let Some(rp_id) = self.rp_id else {
+            return Err(format!("No rp_id provided").into());
+        };
+        if let Some(db_m) = self.db.related_parties().get_rp_id(rp_id) {
+            Ok(db_m)
+        } else {
+            Err(format!("Did not find related party '{rp_id}'").into())
+        }
+    }
+
+    //ap get_related_party_by_name
+    pub fn get_related_party_by_name(&self, name: &str) -> Result<DbRelatedParty, Error> {
         if let Some(db_m) = self
             .db
             .related_parties()
@@ -313,8 +384,8 @@ impl CmdArgs {
         }
     }
 
-    //ap get_member
-    pub fn get_member(&self, name: &str) -> Result<DbRelatedParty, Error> {
+    //ap get_member_by_name
+    pub fn get_member_by_name(&self, name: &str) -> Result<DbRelatedParty, Error> {
         if let Some(db_m) = self
             .db
             .related_parties()
@@ -327,12 +398,69 @@ impl CmdArgs {
     }
 
     //ap get_account
-    pub fn get_account(&self, name: &str) -> Result<DbAccount, Error> {
+    pub fn get_account(&self) -> Result<DbAccount, Error> {
+        self.get_account_by_name(
+            self.account
+                .as_ref()
+                .map(|s| s.as_str())
+                .unwrap_or_default(),
+        )
+    }
+
+    //ap get_account_by_name
+    pub fn get_account_by_name(&self, name: &str) -> Result<DbAccount, Error> {
         if let Some(db_acc) = self.db.accounts().get_account_by_name(name) {
             Ok(db_acc)
         } else {
             Err(format!("Did not find account '{name}'").into())
         }
+    }
+
+    //ap get_bank_transaction
+    /// If db_id is specified, then that should be the bank transaction
+    pub fn get_bank_transaction(&mut self) -> Result<DbBankTransaction, Error> {
+        if !self.db_id.is_empty() {
+            if let Some(d_bt) = self.db.get_bank_transaction(self.db_id[0]) {
+                return Ok(d_bt);
+            }
+            return Err(format!("Db id {} is not a bank transaction", self.db_id[0]).into());
+        } else {
+            let db_acc = self.get_account()?;
+            let rp = self.get_related_party()?;
+            let opt_nth = Some(self.next_usize_arg()?);
+            if let Some((db_id, _n)) = db_acc.inner().get_bank_transaction(
+                &self.db,
+                self.start_date,
+                rp.id(),
+                Amount::default(),
+                opt_nth,
+            ) {
+                if let Some(d_bt) = self.db.get_bank_transaction(db_id) {
+                    return Ok(d_bt);
+                }
+            }
+            return Err(format!(
+                "Failed to find bank transaction for date {} from account '{}' with related party '{}' nth {:?}",
+                self.start_date,
+                db_acc.inner().name(),
+                rp.inner().name(),
+                opt_nth
+            )
+            .into());
+        }
+    }
+
+    //ap get_bank_transactions
+    /// If db_id is specified, then that should be the bank transaction
+    pub fn get_bank_transactions(&mut self) -> Result<Vec<DbBankTransaction>, Error> {
+        let mut bank_transactions = vec![];
+        for db_id in self.db_id.iter() {
+            let Some(d_bt) = self.db.get_bank_transaction(*db_id) else {
+                return Err(format!("Db id {} is not a bank transaction", db_id).into());
+            };
+            bank_transactions.push(d_bt);
+        }
+        Ok(bank_transactions)
     }
 
     //ap get_fund
@@ -343,6 +471,47 @@ impl CmdArgs {
             Err(format!("Did not find fund '{name}'").into())
         }
     }
+
+    //ap next_string_arg
+    pub fn next_string_arg(&mut self) -> Result<String, Error> {
+        let n = self.string_args_index;
+        self.string_args_index += 1;
+        if let Some(arg) = self.string_args.get(n).cloned() {
+            Ok(arg)
+        } else {
+            Err(format!("ran out of string arguments {n}").into())
+        }
+    }
+
+    //ap remaining_string_args
+    pub fn remaining_string_args<'a>(&'a mut self) -> impl Iterator<Item = String> + use<'a> {
+        let n = self.string_args_index.min(self.string_args.len());
+        self.string_args.drain(..).skip(n)
+    }
+
+    //ap next_usize_arg
+    pub fn next_usize_arg(&mut self) -> Result<usize, Error> {
+        let n = self.usize_args_index;
+        self.usize_args_index += 1;
+        if let Some(arg) = self.usize_args.get(n).copied() {
+            Ok(arg)
+        } else {
+            Err(format!("ran out of string arguments {n}").into())
+        }
+    }
+
+    //ap next_value_arg
+    pub fn next_value_arg(&mut self) -> Result<Rc<json::Value>, Error> {
+        let n = self.value_args_index;
+        self.value_args_index += 1;
+        if let Some(arg) = self.value_args.get(n).cloned() {
+            Ok(arg)
+        } else {
+            Err(format!("ran out of string arguments {n}").into())
+        }
+    }
+
+    //z All done
 }
 
 //ip CmdArgs - arg adders
@@ -371,6 +540,18 @@ impl CmdArgs {
             false,
             None,
             Self::load_database,
+        );
+    }
+
+    //fp arg_add_option_account
+    pub fn arg_add_option_account(builder: &mut CommandBuilder<Self>, required: bool) {
+        builder.add_arg_string(
+            "account",
+            None,
+            "Account",
+            required,
+            None,
+            Self::set_account,
         );
     }
 
@@ -468,6 +649,18 @@ impl CmdArgs {
         );
     }
 
+    //fp arg_add_option_date
+    pub fn arg_add_option_date(builder: &mut CommandBuilder<Self>, required: bool) {
+        builder.add_arg_string(
+            "date",
+            None,
+            "Date of the entry",
+            required,
+            None,
+            Self::set_start_date,
+        );
+    }
+
     //fp arg_add_option_start_date
     pub fn arg_add_option_start_date(builder: &mut CommandBuilder<Self>) {
         builder.add_arg_string(
@@ -504,9 +697,21 @@ impl CmdArgs {
         );
     }
 
+    //fp arg_add_option_db_id
+    pub fn arg_add_option_db_id(builder: &mut CommandBuilder<Self>, required: bool) {
+        builder.add_arg_value(
+            "db_id",
+            Some('i'),
+            "DB Id - database ids to use",
+            required,
+            None,
+            Self::set_db_id,
+        );
+    }
+
     //fp arg_add_option_rp_id
     pub fn arg_add_option_rp_id(builder: &mut CommandBuilder<Self>, required: bool) {
-        builder.add_arg_usize(
+        builder.add_arg_string(
             "rp_id",
             Some('i'),
             "RP Id - by convention director=1, member number if 100-500, friend if 500-1000, musician if 1000-2000, supplier 2000+",
@@ -530,6 +735,18 @@ impl CmdArgs {
             required,
             None,
             Self::set_rp_type,
+        );
+    }
+
+    //fp arg_add_option_related_party
+    pub fn arg_add_option_related_party(builder: &mut CommandBuilder<Self>, required: bool) {
+        builder.add_arg_string(
+            "rp",
+            Some('r'),
+            "Related party",
+            required,
+            None,
+            Self::set_related_party,
         );
     }
 
@@ -667,6 +884,21 @@ impl CmdArgs {
             default_value,
             Self::push_string_arg,
         );
+    }
+
+    //fp arg_add_bank_transaction
+    pub fn arg_add_bank_transaction(builder: &mut CommandBuilder<Self>) {
+        // Need to allow for an option of specifying the DbId
+        Self::arg_add_option_date(builder, true);
+        Self::arg_add_option_account(builder, true);
+        Self::arg_add_option_related_party(builder, true);
+        Self::arg_add_option_usize(
+            builder,
+            "nth",
+            None,
+            "Which of the transactions on that day with the related party",
+            Some("0"),
+        ); // Not required as default value is Some
     }
 
     //fp arg_add_file_format

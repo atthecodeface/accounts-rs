@@ -36,12 +36,13 @@ use crate::{DbTransaction, Transaction};
 
 //a DbItemKind
 //tt trait DbitemKind
-pub trait DbItemKindObj: std::fmt::Display {}
-impl<T> DbItemKindObj for T where T: std::fmt::Display {}
-pub trait DbItemKind: DbItemKindObj + Clone + Serialize + for<'a> Deserialize<'a> {
+pub trait DbItemKindObj: std::fmt::Display {
+    fn show_name(&self) -> String;
     fn id(&self) -> DbId;
     fn itype(&self) -> DbItemType;
 }
+// impl<T> DbItemKindObj for T where T: std::fmt::Display {}
+pub trait DbItemKind: DbItemKindObj + Clone + Serialize + for<'a> Deserialize<'a> {}
 
 //mp make_db_item
 /// Construct a type that can be Added to the database as a DbItemType
@@ -49,7 +50,7 @@ pub trait DbItemKind: DbItemKindObj + Clone + Serialize + for<'a> Deserialize<'a
 /// The type is a Rc<RefCell<type>>, with an additional DbId id.
 #[macro_export]
 macro_rules! make_db_item {
-    {$db_id: ident, $id:ident} => {
+    {$db_id: ident, $id:ident, $show_name:ident } => {
 
         #[derive(Debug, Clone, Serialize, Deserialize)]
         pub struct $db_id {
@@ -95,10 +96,13 @@ macro_rules! make_db_item {
             }
         }
 
-        impl $crate :: DbItemKind for $db_id {
+        impl $crate :: DbItemKindObj for $db_id {
             fn id(&self) -> $crate :: DbId { self.id }
             fn itype(&self) -> $crate :: DbItemType {
                 $crate :: DbItemType :: $id
+            }
+            fn show_name(&self) -> String {
+                self.inner.borrow().$show_name()
             }
         }
 
@@ -156,15 +160,14 @@ pub enum DbItemTypeE {
 //ip DbItemTypeE
 impl DbItemTypeE {
     //ap as_dyn_item_kind
-    pub fn as_dyn_item_kind(&self) -> Option<&dyn DbItemKindObj> {
+    pub fn as_dyn_item_kind(&self) -> &dyn DbItemKindObj {
         match self {
-            DbItemTypeE::Account(d) => Some(d),
-            DbItemTypeE::Fund(d) => Some(d),
-            DbItemTypeE::Invoice(d) => Some(d),
-            DbItemTypeE::RelatedParty(d) => Some(d),
-            DbItemTypeE::BankTransaction(d) => Some(d),
-            DbItemTypeE::Transaction(d) => Some(d),
-            // _ => None,
+            DbItemTypeE::Account(d) => d,
+            DbItemTypeE::Fund(d) => d,
+            DbItemTypeE::Invoice(d) => d,
+            DbItemTypeE::RelatedParty(d) => d,
+            DbItemTypeE::BankTransaction(d) => d,
+            DbItemTypeE::Transaction(d) => d,
         }
     }
 
@@ -235,11 +238,7 @@ pub struct DbItem {
 //ip Display for DbItem
 impl std::fmt::Display for DbItem {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        if let Some(v) = self.value.as_dyn_item_kind() {
-            v.fmt(fmt)
-        } else {
-            write!(fmt, "No display for {}", self.id)
-        }
+        self.value.as_dyn_item_kind().fmt(fmt)
     }
 }
 
@@ -253,6 +252,11 @@ impl DbItem {
     //ap itype
     pub fn itype(&self) -> DbItemType {
         self.itype
+    }
+
+    //ap show_name
+    pub fn show_name(&self) -> String {
+        self.value.as_dyn_item_kind().show_name()
     }
 
     //ap account

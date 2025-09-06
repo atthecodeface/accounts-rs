@@ -148,20 +148,20 @@ impl<'a> std::fmt::Display for RelatedPartySummary<'a> {
             self.rp_type, self.rp_id, self.name
         )?;
         if !self.address.is_empty() {
-            writeln!(fmt, "    Address: {}", self.address);
+            writeln!(fmt, "    Address: {}", self.address)?;
         }
         if !self.email.is_empty() {
-            writeln!(fmt, "    Email: {}", self.email);
+            writeln!(fmt, "    Email: {}", self.email)?;
         }
         if !self.telephone.is_empty() {
-            writeln!(fmt, "    Telephone: {}", self.telephone);
+            writeln!(fmt, "    Telephone: {}", self.telephone)?;
         }
         if !self.postcode.is_empty() || !self.house_number.is_empty() {
             writeln!(
                 fmt,
                 "    House: {}   Postcode: {}",
                 self.house_number, self.postcode
-            );
+            )?;
         }
         Ok(())
     }
@@ -348,6 +348,18 @@ impl RelatedParty {
         self.last_gift_aid
     }
 
+    //mp add_transaction
+    /// Add transaction
+    pub fn add_transaction(&mut self, date: Date, t_id: DbId) -> bool {
+        if let Some(db_ids) = self.transactions.of_date(date) {
+            if db_ids.contains(&t_id) {
+                return false;
+            }
+        }
+        self.transactions.push_to_date(date, t_id);
+        true
+    }
+
     //ap matches_query
     pub fn matches_query(&self, query: &RelatedPartyQuery) -> bool {
         query.matches_rp_type(self.rp_type)
@@ -358,10 +370,17 @@ impl RelatedParty {
         self.transactions.rebuild(database_rebuild)?;
         self.invoices.rebuild(database_rebuild)
     }
+
+    //mp show_name
+    pub fn show_name(&self) -> String {
+        self.name().to_string()
+    }
+
+    //zz All done
 }
 
 //tp DbRelatedParty
-crate::make_db_item!(DbRelatedParty, RelatedParty);
+crate::make_db_item!(DbRelatedParty, RelatedParty, show_name);
 
 //a DbRelatedParties
 //tp DbRelatedPartiesState
@@ -480,8 +499,8 @@ impl DbRelatedParties {
         }
     }
 
-    //mi get_party_of_str
-    fn get_party_of_str(&self, name: &str) -> Option<DbRelatedParty> {
+    //mp get_party_of_str
+    pub fn get_party_of_str(&self, name: &str) -> Option<DbRelatedParty> {
         if name.chars().all(|c| c.is_ascii_digit()) {
             if let Ok(n) = name.parse::<usize>() {
                 return self.get_rp_id(n);

@@ -74,6 +74,9 @@ pub struct BankTransaction {
     /// Related party
     #[serde(default)]
     related_party: DbId,
+    /// Transactions
+    #[serde(default)]
+    transactions: Vec<DbId>,
 }
 
 //ip Display for BankTransaction
@@ -116,6 +119,7 @@ impl BankTransaction {
             balance,
             account_id: DbId::none(),
             related_party: DbId::none(),
+            transactions: vec![],
         }
     }
 
@@ -127,6 +131,16 @@ impl BankTransaction {
     //ap balance_delta
     pub fn balance_delta(&self) -> Amount {
         (self.credit.value() - self.debit.value()).into()
+    }
+
+    //ap credit
+    pub fn credit(&self) -> Amount {
+        self.credit
+    }
+
+    //ap debit
+    pub fn debit(&self) -> Amount {
+        self.debit
     }
 
     //ap account_desc
@@ -174,10 +188,17 @@ impl BankTransaction {
             database_rebuild.get_new_id("BankTransaction account ID", self.account_id)?;
         Ok(())
     }
+
+    //mp show_name
+    pub fn show_name(&self) -> String {
+        self.to_string()
+    }
+
+    //zz All done
 }
 
 //tp DbBankTransaction
-crate::make_db_item!(DbBankTransaction, BankTransaction);
+crate::make_db_item!(DbBankTransaction, BankTransaction, show_name);
 
 //a DbBankTransactions
 //tp DbBankTransactionsState

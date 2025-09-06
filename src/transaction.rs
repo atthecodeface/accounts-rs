@@ -3,7 +3,7 @@ use std::cell::RefCell;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{Amount, Date, DbId};
+use crate::{Amount, Database, Date, DbId};
 
 //a TransactionType
 //tp TransactionType
@@ -65,9 +65,9 @@ pub struct Transaction {
     date: Date,
     /// CSV Transaction Type,
     ttype: TransactionType,
-    /// Debit side of transaction (could be Fund, BankTransaction, RelatedParty)
+    /// Debit side of transaction (could be Fund, RelatedParty)
     debit_id: DbId,
-    /// Credit side of transaction (could be Fund, BankTransaction, RelatedParty)
+    /// Credit side of transaction (could be Fund, RelatedParty)
     credit_id: DbId,
     /// Amount, always positive(?)
     amount: Amount,
@@ -78,7 +78,11 @@ pub struct Transaction {
 //ip Display for Transaction
 impl std::fmt::Display for Transaction {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        std::fmt::Debug::fmt(self, fmt)
+        write!(
+            fmt,
+            "{}: {}: {} {} -> {} {:?}",
+            self.date, self.amount, self.ttype, self.debit_id, self.credit_id, self.notes
+        )
     }
 }
 
@@ -105,6 +109,55 @@ impl Transaction {
     //cp new_payment
     pub fn new_payment(date: Date, amount: Amount, from_fund_id: DbId, to_id: DbId) -> Self {
         Self::new(date, TransactionType::ToRp, amount, from_fund_id, to_id)
+    }
+
+    //cp new_income
+    pub fn new_income(date: Date, amount: Amount, from_id: DbId, to_fund_id: DbId) -> Self {
+        Self::new(date, TransactionType::FromRp, amount, from_id, to_fund_id)
+    }
+
+    //mp update_related_dbs
+    pub fn update_related_dbs(&self, database: &Database, db_id: DbId) -> bool {
+        let mut okay = true;
+        match self.ttype {
+            TransactionType::FromRp => {
+                if let Some(db_f) = database.get_fund(self.credit_id) {
+                    okay &= db_f.inner_mut().add_transaction(self.date, db_id);
+                } else {
+                    okay = false;
+                }
+                if let Some(db_rp) = database.get_related_party(self.debit_id) {
+                    okay &= db_rp.inner_mut().add_transaction(self.date, db_id);
+                } else {
+                    okay = false;
+                }
+            }
+            TransactionType::ToRp => {
+                if let Some(db_rp) = database.get_related_party(self.credit_id) {
+                    okay &= db_rp.inner_mut().add_transaction(self.date, db_id);
+                } else {
+                    okay = false;
+                }
+                if let Some(db_f) = database.get_fund(self.debit_id) {
+                    okay &= db_f.inner_mut().add_transaction(self.date, db_id);
+                } else {
+                    okay = false;
+                }
+            }
+            _ => {
+                if let Some(db_f) = database.get_fund(self.debit_id) {
+                    okay &= db_f.inner_mut().add_transaction(self.date, db_id);
+                } else {
+                    okay = false;
+                }
+                if let Some(db_f) = database.get_fund(self.credit_id) {
+                    okay &= db_f.inner_mut().add_transaction(self.date, db_id);
+                } else {
+                    okay = false;
+                }
+            }
+        }
+        okay
     }
 
     //ap date
@@ -141,10 +194,45 @@ impl Transaction {
     pub fn add_note<I: Into<String>>(&mut self, s: I) {
         self.notes.push(s.into());
     }
+
+    //mp show_one_line
+    pub fn show_one_line(&self, db: &Database) -> String {
+        format!(
+            "{}: {}:   {} debit:'{}' credit:'{}'",
+            self.date,
+            self.amount,
+            self.ttype,
+            db.show_name(self.debit_id),
+            db.show_name(self.credit_id)
+        )
+    }
+
+    //mp balance_delta_for
+    pub fn balance_delta_for(&self, db_id: DbId) -> Option<Amount> {
+        if self.debit_id == db_id {
+            Some(-self.amount)
+        } else if self.credit_id == db_id {
+            Some(self.amount)
+        } else {
+            None
+        }
+    }
+
+    //mp show_name
+    pub fn show_name(&self) -> String {
+        format!(
+            "{} {} '{}'",
+            self.date,
+            self.amount,
+            self.notes.get(0).map(|s| s.as_str()).unwrap_or_default()
+        )
+    }
+
+    //zz All done
 }
 
 //tp DbTransaction
-crate::make_db_item!(DbTransaction, Transaction);
+crate::make_db_item!(DbTransaction, Transaction, show_name);
 
 //a DbTransactions
 //tp DbTransactionsState
@@ -153,8 +241,6 @@ crate::make_db_item!(DbTransaction, Transaction);
 pub struct DbTransactionsState {
     /// All the transactions
     array: Vec<DbTransaction>,
-    // Indexed by description
-    // index: HashMap<String, DbTransaction>,
 }
 
 //tp DbTransactions
@@ -181,15 +267,8 @@ impl DbTransactions {
 
     //mp add_transaction
     pub fn add_transaction(&self, db_transaction: DbTransaction) -> bool {
-        // if self.has_transaction(&db_transaction.inner().description()) {
-        // return false;
-        // }
         let mut state = self.state.borrow_mut();
         state.array.push(db_transaction.clone());
-        // state.index.insert(
-        //            db_transaction.inner().description().to_string(),
-        // db_transaction.clone(),
-        // );
         true
     }
 

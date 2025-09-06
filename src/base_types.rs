@@ -248,20 +248,20 @@ impl Date {
             let day = c.get(1).unwrap().as_str().parse::<u32>().unwrap();
             let month = c.get(2).unwrap().as_str().parse::<u32>().unwrap();
             let year = c.get(3).unwrap().as_str().parse::<i32>().unwrap();
-            Ok(Self::of_dmy(day, month, year))
+            Self::of_dmy(day, month, year)
         } else if let Some(c) = r2.captures(s) {
             let day = c.get(1).unwrap().as_str().parse::<u32>().unwrap();
             let month = c.get(2).unwrap().as_str().parse::<u32>().unwrap();
             let year = c.get(3).unwrap().as_str().parse::<i32>().unwrap();
-            Ok(Self::of_dmy(day, month, year))
+            Self::of_dmy(day, month, year)
         } else if let Some(c) = r3.captures(s) {
             let month = c.get(1).unwrap().as_str().parse::<u32>().unwrap();
             let year = c.get(2).unwrap().as_str().parse::<i32>().unwrap();
-            Ok(Self::of_dmy(1, month, year))
+            Self::of_dmy(1, month, year)
         } else if let Some(c) = r4.captures(s) {
             let month = c.get(1).unwrap().as_str().parse::<u32>().unwrap();
             let year = c.get(2).unwrap().as_str().parse::<i32>().unwrap();
-            Ok(Self::of_dmy(1, month, year))
+            Self::of_dmy(1, month, year)
         } else {
             Err(Error::ParseDate(s.into()))
         }
@@ -281,7 +281,7 @@ impl Date {
 
     //cp of_dmy
     #[track_caller]
-    pub fn of_dmy(day: u32, month: u32, year: i32) -> Self {
+    pub fn of_dmy(day: u32, month: u32, year: i32) -> Result<Self, Error> {
         let year = {
             if year < 90 {
                 year + 2000
@@ -291,9 +291,10 @@ impl Date {
                 year
             }
         };
-        let date = NaiveDate::from_ymd_opt(year, month, day).unwrap();
+        let date = NaiveDate::from_ymd_opt(year, month, day)
+            .ok_or_else(|| format!("Cannot turn d/m/y {day}/{month}/{year} into a date"))?;
         let date = Utc.from_utc_datetime(&date.into()).into();
-        date
+        Ok(date)
     }
 
     //ap dmy

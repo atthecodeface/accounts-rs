@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{Amount, DateRange, DatabaseRebuild, Date, DbId, DbTransaction, Error, OrderedTransactions};
+use crate::{Amount, Database, DatabaseRebuild, Date, DateRange, DbId, Error, OrderedTransactions};
 
 //a Fund
 //tp Fund
@@ -13,13 +13,12 @@ use crate::{Amount, DateRange, DatabaseRebuild, Date, DbId, DbTransaction, Error
 ///
 /// This describes a bank fund or an investment fund
 ///
-/// The transactions should really be in the order in which the
-/// institution lists them (which may well be time-order)
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Fund {
     name: String,
     description: String,
     aliases: Vec<String>,
+    /// Transactions on the fund - these may be any kind of transaction
     transactions: OrderedTransactions<DbId>,
     start_balance: Amount,
     end_balance: Option<Amount>,
@@ -74,33 +73,64 @@ impl Fund {
     }
 
     //mp transactions_in_range
-    pub fn transactions_in_range(&self, date_range:DateRange) -> Vec<DbId> {
+    pub fn transactions_in_range(&self, date_range: DateRange) -> Vec<DbId> {
         self.transactions.transactions_in_range(date_range)
     }
 
     //mp add_transaction
     /// Add transaction
-    pub fn add_transaction(&mut self, t: DbTransaction) -> Result<(), DbTransaction> {
-        let date = t.inner().date();
-        let db_id = t.id();
+    pub fn add_transaction(&mut self, date: Date, t_id: DbId) -> bool {
         if let Some(db_ids) = self.transactions.of_date(date) {
-            if db_ids.contains(&db_id) {
-                return Err(t);
+            if db_ids.contains(&t_id) {
+                return false;
             }
         }
-        self.transactions.push_to_date(date, db_id);
+        self.transactions.push_to_date(date, t_id);
         self.end_balance = None;
-        Ok(())
+        true
     }
 
     //mp rebuild
     pub fn rebuild(&mut self, database_rebuild: &DatabaseRebuild) -> Result<(), Error> {
         self.transactions.rebuild(database_rebuild)
     }
+
+    //ap show
+    /// Show for a human
+    pub fn show(&self, db: &Database, db_id: DbId) {
+        println!("Fund {} : {}", self.name, self.description);
+        for a in self.aliases.iter() {
+            println!("    alias {a}");
+        }
+        println!("Starting balance: {}", self.start_balance);
+        let mut balance = self.start_balance;
+        for t in self.transactions.iter() {
+            let t_db_id = self.transactions[t];
+            if let Some(db_t) = db.get_transaction(t_db_id) {
+                if let Some(delta) = db_t.inner().balance_delta_for(db_id) {
+                    println!("  {} : {}", balance, db_t.inner().show_one_line(db));
+                    balance += delta;
+                } else {
+                    println!(
+                        "  !!Not for this Fund!! : {}",
+                        db_t.inner().show_one_line(db)
+                    );
+                }
+            }
+        }
+        println!("Ending balance: {}", balance);
+    }
+
+    //mp show_name
+    pub fn show_name(&self) -> String {
+        self.name().to_string()
+    }
+
+    //zz All done
 }
 
 //tp DbFund
-crate::make_db_item!(DbFund, Fund);
+crate::make_db_item!(DbFund, Fund, show_name);
 
 //a DbFunds
 //ti DbFundsState
@@ -161,7 +191,7 @@ impl DbFunds {
         state.array.push(db_fund.clone());
         state
             .index
-            .insert(db_fund.inner().desc().into(), db_fund.clone());
+            .insert(db_fund.inner().name().into(), db_fund.clone());
         true
     }
 
